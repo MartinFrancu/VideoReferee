@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VideoReferee spike — referee review</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1a1a1a; color: #eee; font-family: system-ui, sans-serif; }
+  #layout { display: flex; height: 100vh; }
+  #sidebar { width: 280px; overflow-y: auto; border-right: 1px solid #333; }
+  #sidebar h2 { font-size: 14px; padding: 12px; margin: 0; border-bottom: 1px solid #333; }
+  #bookmarkList { list-style: none; margin: 0; padding: 0; }
+  #bookmarkList li { padding: 10px 12px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 13px; }
+  #bookmarkList li:hover, #bookmarkList li.active { background: #2a2a2a; }
+  #stage { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; padding: 12px; align-content: start; }
+  .clip { background: #000; border-radius: 8px; overflow: hidden; }
+  .clip .label { padding: 6px 10px; font-size: 13px; background: #222; }
+  .clip video { width: 100%; display: block; background: #000; }
+  #empty { padding: 24px; opacity: 0.6; }
+</style>
+</head>
+<body>
+  <div id="layout">
+    <div id="sidebar">
+      <h2>Bookmarks</h2>
+      <ul id="bookmarkList"></ul>
+    </div>
+    <div id="stage"><div id="empty">Select a bookmark to review its angles.</div></div>
+  </div>
+  <script src="referee.js"></script>
+</body>
+</html>

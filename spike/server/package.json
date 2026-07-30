@@ -1,0 +1,14 @@
+{
+  "name": "videoreferee-spike",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Throwaway feasibility spike for VideoReferee — not production code.",
+  "scripts": {
+    "gen-cert": "bash gen-cert.sh",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}
