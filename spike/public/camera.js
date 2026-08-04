@@ -28,7 +28,13 @@ const cameraId =
 cameraLabelEl.textContent = cameraId;
 
 let offset = 0; // estimated serverTime - localTime
-let chunks = []; // { blob, start, end } in local Date.now() time
+// MediaRecorder puts the WebM container header (needed to decode anything)
+// only in the very first emitted chunk — every later chunk is header-less
+// cluster data. Keep that first chunk pinned forever (it's tiny) and never
+// let it fall out of the rolling window, or clips built later become
+// undecodable.
+let headerChunk = null; // { blob, start, end }
+let chunks = []; // { blob, start, end } in local Date.now() time — post-header only
 let ws;
 
 function setStatus(text, color) {
@@ -92,6 +98,10 @@ async function handleBookmark(bookmarkId, serverTime) {
     await new Promise((r) => setTimeout(r, waitMs + 300));
   }
 
+  if (!headerChunk) {
+    log(`no header chunk yet, can't build a playable clip for bookmark ${bookmarkId.slice(0, 8)}`);
+    return;
+  }
   const relevant = chunks.filter((c) => c.end >= windowStart && c.start <= windowEnd);
   if (relevant.length === 0) {
     log(`no buffered footage for bookmark ${bookmarkId.slice(0, 8)}`);
@@ -99,8 +109,8 @@ async function handleBookmark(bookmarkId, serverTime) {
   }
 
   const blob = new Blob(
-    relevant.map((c) => c.blob),
-    { type: relevant[0].blob.type }
+    [headerChunk.blob, ...relevant.map((c) => c.blob)],
+    { type: headerChunk.blob.type }
   );
   try {
     const res = await fetch(`/upload?bookmarkId=${bookmarkId}&cameraId=${encodeURIComponent(cameraId)}`, {
@@ -141,7 +151,13 @@ async function start() {
   recorder.ondataavailable = (e) => {
     if (!e.data || e.data.size === 0) return;
     const now = Date.now();
-    chunks.push({ blob: e.data, start: now - 250, end: now });
+    const entry = { blob: e.data, start: now - 250, end: now };
+    if (!headerChunk) {
+      headerChunk = entry;
+      log(`captured header chunk (${entry.blob.size}B)`);
+      return;
+    }
+    chunks.push(entry);
     const cutoff = now - BUFFER_WINDOW_MS;
     while (chunks.length && chunks[0].end < cutoff) chunks.shift();
   };

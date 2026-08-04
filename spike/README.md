@@ -203,6 +203,18 @@ npm start
 Then reload the page on the phone — you'll get the "not private" warning
 again since it's technically a new certificate, click through it once more.
 
+## Troubleshooting: referee page shows a grey box instead of video
+
+The clip uploaded fine (server log shows `clip received`) but it won't
+decode. `MediaRecorder` only puts the WebM container header in the very
+first chunk it ever emits — every chunk after that is header-less cluster
+data. `camera.js` now pins that first chunk forever and prepends it to every
+bookmark's uploaded clip; without that, any bookmark made more than ~20s
+into recording was built entirely from header-less chunks and could never
+play. If you still see this after pulling the latest camera.js, check the
+browser console on the referee page — video elements now report decode
+errors there (and in the video tile's label) instead of failing silently.
+
 ## Test protocol — what we're actually checking
 
 - [ ] **Continuous recording**: leave a phone recording for 3–5 minutes

@@ -55,6 +55,12 @@ function renderStage(id) {
     label.textContent = cameraId;
     const video = document.createElement('video');
     video.src = b.clips[cameraId];
+    video.addEventListener('error', () => {
+      const err = video.error;
+      console.error('video decode error', cameraId, err);
+      label.textContent = `${cameraId} — playback error (code ${err?.code}): ${err?.message || 'unknown'}`;
+      label.style.color = '#e74c3c';
+    });
     video.controls = true;
     video.autoplay = true;
     video.playsInline = true;
