@@ -149,6 +149,39 @@ have footage covering the window — check that phone's on-screen log.
 - If port 3000 is already in use on a restart, either stop the old process
   or run with a different port: `PORT=3001 npm start`.
 
+## Troubleshooting: phone gets a spinning "loading" that never finishes
+
+This is different from the cert-warning screen — it means the connection
+attempt isn't even reaching the server (a bad cert would still show a warning
+page; this is silence). Almost always one of these, in order of likelihood:
+
+1. **Windows Firewall is blocking inbound connections to Node.** This is the
+   most common cause. The first time `npm start` runs, Windows should prompt
+   "Windows Defender Firewall has blocked some features of Node.js" — if you
+   clicked **Cancel** (or it appeared minimized and got missed), every
+   connection from another device will hang exactly like this, while the
+   laptop itself can still reach the server fine (loopback/self-traffic
+   isn't firewalled the same way) — which lines up with the one time it
+   worked. Fix it directly, in an **admin PowerShell**:
+   ```
+   New-NetFirewallRule -DisplayName "VideoReferee spike" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow
+   ```
+   Then try the phone again.
+2. **Wrong IP address.** The server now prints the exact URLs to use on
+   startup (`npm start` output) instead of making you look it up — if your
+   laptop has a VPN active or multiple network adapters, `ipconfig` can
+   easily surface the wrong one. Re-run `npm start` and copy the address it
+   prints exactly.
+3. **Network profile set to Public.** If Windows treats your Wi-Fi as a
+   "Public" network, some firewall defaults are stricter. The rule above
+   applies to all profiles regardless, so it should cover this too — but if
+   still stuck, check Settings → Network & Internet → Wi-Fi → (your network)
+   → Network profile type, and switch it to Private if appropriate for where
+   you are.
+4. **Client isolation on the Wi-Fi network** (see Prerequisites above) — if
+   1–3 don't fix it, try a phone hotspot with the laptop joined to it
+   instead, to rule the network itself out.
+
 ## Test protocol — what we're actually checking
 
 - [ ] **Continuous recording**: leave a phone recording for 3–5 minutes

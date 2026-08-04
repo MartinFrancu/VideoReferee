@@ -3,6 +3,7 @@
 // multi-camera sync. Not production code (no auth, no persistence, no
 // reconnect-hardening beyond the basics).
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const https = require('https');
 const crypto = require('crypto');
@@ -88,8 +89,29 @@ wss.on('connection', (ws) => {
   });
 });
 
+function getLocalIPs() {
+  const ips = [];
+  for (const iface of Object.values(os.networkInterfaces())) {
+    for (const addr of iface || []) {
+      if (addr.family === 'IPv4' && !addr.internal) ips.push(addr.address);
+    }
+  }
+  return ips;
+}
+
 server.listen(PORT, () => {
-  console.log(`VideoReferee spike server listening on https://0.0.0.0:${PORT}`);
-  console.log('Open https://<this-machine-local-ip>:' + PORT + '/camera.html on each phone (same Wi-Fi).');
-  console.log('Open https://<this-machine-local-ip>:' + PORT + '/referee.html on the laptop.');
+  const ips = getLocalIPs();
+  console.log(`VideoReferee spike server listening on port ${PORT}`);
+  if (ips.length === 0) {
+    console.log('Could not auto-detect a local network IP — find it manually (see README).');
+  } else {
+    console.log('Reachable at (use the one matching the Wi-Fi network your phones are on):');
+    for (const ip of ips) {
+      console.log(`  https://${ip}:${PORT}/camera.html`);
+      console.log(`  https://${ip}:${PORT}/referee.html`);
+    }
+    if (ips.length > 1) {
+      console.log('(Multiple addresses found — likely Wi-Fi + a VPN/virtual adapter. Pick the one on your actual Wi-Fi subnet.)');
+    }
+  }
 });
