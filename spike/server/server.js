@@ -23,7 +23,17 @@ if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
 }
 
 const app = express();
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Disable caching entirely for the spike's own JS/HTML — mobile browsers
+// cache aggressively and there's no easy hard-refresh gesture on a phone,
+// which has already caused at least one confusing "did my fix even load"
+// moment. This is a throwaway spike; correctness > caching efficiency here.
+app.use(
+  express.static(path.join(__dirname, '..', 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => res.setHeader('Cache-Control', 'no-store'),
+  })
+);
 app.use('/clips', express.static(CLIPS_DIR));
 
 // Raw video blob upload — client sends the Blob directly as the body, no
@@ -69,8 +79,17 @@ app.post('/upload', (req, res) => {
     fs.writeFileSync(path.join(CLIPS_DIR, filename), body);
     bookmark.clips[cameraId] = filename;
 
+    // A valid WebM/Matroska file must start with the EBML magic bytes
+    // 1a45dfa3. If this ever prints something else, the header chunk isn't
+    // actually being prepended (stale client JS, or the header-pinning
+    // logic isn't working) — that's a client-side bug, not a demuxer quirk.
+    const headerHex = body.subarray(0, 4).toString('hex');
+    const looksLikeValidWebm = headerHex === '1a45dfa3';
     broadcast({ type: 'clipReady', bookmarkId, cameraId, url: `/clips/${filename}` });
-    console.log(`clip received: bookmark=${bookmarkId} camera=${cameraId} bytes=${body.length}`);
+    console.log(
+      `clip received: bookmark=${bookmarkId} camera=${cameraId} bytes=${body.length} ` +
+        `header=${headerHex} (${looksLikeValidWebm ? 'looks like valid WebM' : 'NOT a valid WebM header!'})`
+    );
     res.sendStatus(200);
   });
 
