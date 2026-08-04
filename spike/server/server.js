@@ -26,20 +26,58 @@ const app = express();
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/clips', express.static(CLIPS_DIR));
 
-// Raw video blob upload — client sends the Blob directly as the body, no multipart.
-app.post('/upload', express.raw({ type: '*/*', limit: '50mb' }), (req, res) => {
+// Raw video blob upload — client sends the Blob directly as the body, no
+// multipart. Read the stream manually rather than via express.raw()/
+// body-parser: body-parser only parses when the request's Content-Type
+// matches its configured `type` option, and silently defaults req.body to
+// `{}` otherwise (not an error) — mobile browsers don't reliably send a
+// Content-Type header on a raw fetch() body, so that mismatch was leaving
+// req.body as an empty object instead of the actual bytes.
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+app.post('/upload', (req, res) => {
   const { bookmarkId, cameraId } = req.query;
   const bookmark = bookmarks.get(bookmarkId);
   if (!bookmark) return res.status(404).send('unknown bookmark');
   if (!cameraId) return res.status(400).send('missing cameraId');
 
-  const filename = `${bookmarkId}_${sanitize(cameraId)}.webm`;
-  fs.writeFileSync(path.join(CLIPS_DIR, filename), req.body);
-  bookmark.clips[cameraId] = filename;
+  const chunks = [];
+  let total = 0;
+  let rejected = false;
 
-  broadcast({ type: 'clipReady', bookmarkId, cameraId, url: `/clips/${filename}` });
-  console.log(`clip received: bookmark=${bookmarkId} camera=${cameraId} bytes=${req.body.length}`);
-  res.sendStatus(200);
+  req.on('data', (chunk) => {
+    if (rejected) return;
+    total += chunk.length;
+    if (total > MAX_UPLOAD_BYTES) {
+      rejected = true;
+      res.status(413).send('upload too large');
+      req.destroy();
+      return;
+    }
+    chunks.push(chunk);
+  });
+
+  req.on('end', () => {
+    if (rejected) return;
+    const body = Buffer.concat(chunks);
+    if (body.length === 0) {
+      res.status(400).send('empty upload');
+      return;
+    }
+
+    const filename = `${bookmarkId}_${sanitize(cameraId)}.webm`;
+    fs.writeFileSync(path.join(CLIPS_DIR, filename), body);
+    bookmark.clips[cameraId] = filename;
+
+    broadcast({ type: 'clipReady', bookmarkId, cameraId, url: `/clips/${filename}` });
+    console.log(`clip received: bookmark=${bookmarkId} camera=${cameraId} bytes=${body.length}`);
+    res.sendStatus(200);
+  });
+
+  req.on('error', (err) => {
+    console.error('upload stream error', err);
+    if (!res.headersSent) res.status(500).send('upload failed');
+  });
 });
 
 function sanitize(id) {
