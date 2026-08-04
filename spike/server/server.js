@@ -36,6 +36,9 @@ app.use(
 );
 app.use('/clips', express.static(CLIPS_DIR));
 
+// Quiet the browser's automatic favicon probe — harmless 404 otherwise.
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Raw video blob upload — client sends the Blob directly as the body, no
 // multipart. Read the stream manually rather than via express.raw()/
 // body-parser: body-parser only parses when the request's Content-Type
