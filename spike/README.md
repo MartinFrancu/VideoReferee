@@ -51,6 +51,9 @@ npm run gen-cert   # creates a throwaway self-signed TLS cert in server/certs/
 npm start
 ```
 
+(`gen-cert` is a plain Node script, so this works the same on Windows,
+macOS, and Linux — no `openssl` or `bash` required.)
+
 You should see output like:
 
 ```

@@ -4,11 +4,12 @@
   "private": true,
   "description": "Throwaway feasibility spike for VideoReferee — not production code.",
   "scripts": {
-    "gen-cert": "bash gen-cert.sh",
+    "gen-cert": "node gen-cert.js",
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
+    "selfsigned": "^2.4.1",
     "ws": "^8.18.0"
   }
 }
