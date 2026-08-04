@@ -182,6 +182,27 @@ page; this is silence). Almost always one of these, in order of likelihood:
    1–3 don't fix it, try a phone hotspot with the laptop joined to it
    instead, to rule the network itself out.
 
+## Troubleshooting: "Safari could not open the page because the network connection was lost" (right after accepting the cert warning)
+
+This is a different failure mode from the spinner above — the connection
+*did* reach the server, but iOS Safari killed it. This happens when the
+self-signed certificate has no **Subject Alternative Name (SAN)** — a
+CommonName alone isn't enough for iOS; it lets you click through the initial
+warning but then refuses the connection outright. `gen-cert.js` now bakes in
+a SAN covering `localhost` and every local IPv4 address it can detect on the
+machine, so a freshly generated cert should work. If you generated your cert
+before this fix (or changed Wi-Fi networks since, so your IP isn't in the
+cert anymore), regenerate it:
+
+```
+cd spike/server
+npm run gen-cert
+npm start
+```
+
+Then reload the page on the phone — you'll get the "not private" warning
+again since it's technically a new certificate, click through it once more.
+
 ## Test protocol — what we're actually checking
 
 - [ ] **Continuous recording**: leave a phone recording for 3–5 minutes
