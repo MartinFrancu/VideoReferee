@@ -52,9 +52,10 @@ function renderStage(id) {
     wrap.className = 'clip';
     const label = document.createElement('div');
     label.className = 'label';
-    label.textContent = cameraId;
+    const url = b.clips[cameraId];
+    label.textContent = `${cameraId} — ${url.split('/').pop()}`;
     const video = document.createElement('video');
-    video.src = b.clips[cameraId];
+    video.src = url;
     video.addEventListener('error', () => {
       const err = video.error;
       console.error('video decode error', cameraId, err);
