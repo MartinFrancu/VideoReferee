@@ -345,6 +345,21 @@ the phones — it says nothing about Wake Lock, screen lock, or iOS.
   despite Wake Lock, that's the signal to wrap the camera page in Capacitor
   before building further, rather than fighting the browser.
 
+## Where this came from
+
+This spike was built across several Claude Code sessions. The links below need
+the repo owner's login; they are recorded so the reasoning behind decisions
+stays findable, not because they are readable by anyone else.
+
+- [Planning and first debugging pass](https://claude.ai/code/session_01T6rpDob3jG3GyBWtKZyDtk)
+  — architecture decisions (local hub, buffer + broadcast rather than
+  continuous streaming, timestamp-only sync), then the cert/SAN, upload
+  Content-Type, and first clip-decoding fixes. Commits `a45d6c4`..`ec1e468`.
+- [Clip-cutting rewrite](https://claude.ai/code/session_01F3tFABXXutqqA4kBbZ9TDD)
+  — root-caused "every bookmark shows the same early moment" to slicing on
+  MediaRecorder chunk boundaries, replaced it with WebM cluster-boundary
+  cutting, and added `spike/test/`. Commit `3311b9a`.
+
 ## Explicitly out of scope here
 
 No Angular, no styling polish, no auth, no database (clips are just files on
