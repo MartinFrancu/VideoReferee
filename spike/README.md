@@ -19,7 +19,36 @@ build anything real in Angular:
 - Sync is timestamp-only for this spike (a lightweight NTP-style clock-offset
   estimate per phone) — no audio cross-correlation yet.
 - The referee opens `referee.html` on the laptop, sees bookmarks arrive live,
-  and clicking one shows all received angles side by side.
+  and clicking one shows all received angles side by side, each already
+  seeked to the bookmarked instant, with a shared scrubber that moves all
+  angles together relative to that instant.
+
+### How a clip is actually cut (the part that is easy to get wrong)
+
+`MediaRecorder`'s `dataavailable` chunks are **arbitrary byte slices of one
+continuous stream**, not self-contained pieces of video. A chunk boundary can
+land anywhere — we measured one that split the 4-byte EBML magic number across
+two chunks. So you cannot build a playable clip by concatenating a subset of
+chunks, no matter which header bytes you staple onto the front.
+
+What you *can* cut on is the WebM structure underneath, which is what
+`public/webm.js` does:
+
+- Reassemble the chunk stream and split it into the **init segment**
+  (everything before the first Cluster) plus **whole Clusters** (~300ms each).
+- Keep a rolling window of clusters; a clip is `init segment + selected
+  clusters`.
+- **Rebase cluster timecodes.** They are absolute (ms since recording start),
+  so a clip cut at 90s whose first cluster still says `90000` makes players
+  treat it as a 90-second clip with nothing at the front.
+- **Snap the start back to a keyframe.** Video only decodes from a keyframe,
+  and Chrome emits one roughly every 3.4s — so clips carry a few seconds of
+  lead-in before the requested window. That is why each clip reports where the
+  bookmark falls inside it (`clipStart`), and why the referee page seeks rather
+  than just pressing play.
+
+Because the lead-in differs per camera, that per-clip `clipStart` is also what
+makes the angles line up with each other on the referee page.
 
 ## Prerequisites
 
@@ -203,17 +232,84 @@ npm start
 Then reload the page on the phone — you'll get the "not private" warning
 again since it's technically a new certificate, click through it once more.
 
-## Troubleshooting: referee page shows a grey box instead of video
+## Troubleshooting: referee page shows a grey box, or every bookmark looks like the same early moment
 
-The clip uploaded fine (server log shows `clip received`) but it won't
-decode. `MediaRecorder` only puts the WebM container header in the very
-first chunk it ever emits — every chunk after that is header-less cluster
-data. `camera.js` now pins that first chunk forever and prepends it to every
-bookmark's uploaded clip; without that, any bookmark made more than ~20s
-into recording was built entirely from header-less chunks and could never
-play. If you still see this after pulling the latest camera.js, check the
-browser console on the referee page — video elements now report decode
-errors there (and in the video tile's label) instead of failing silently.
+Both symptoms had the same root cause, now fixed: clips were being assembled
+by concatenating raw `MediaRecorder` chunks, which are arbitrary byte slices
+rather than self-contained video (see "How a clip is actually cut" above). An
+earlier attempt pinned the recorder's first chunk and prepended it to every
+clip — that first chunk contains the opening moment of the recording, so every
+bookmark decoded that same opening fraction of a second and then hit
+unparseable bytes and stopped. Hence "every bookmark shows the first video",
+even though the filenames, byte sizes, and timestamps were all genuinely
+different.
+
+The server log is the quickest check. Each upload prints:
+
+```
+clip received: bookmark=... camera=north bytes=406103 bookmarkOffsetInClip=4.21s header=1a45dfa3 (looks like valid WebM)
+```
+
+- `header=1a45dfa3 (looks like valid WebM)` — the clip starts with a real EBML
+  header. Anything else means the init segment isn't being prepended.
+- `bookmarkOffsetInClip` — where the bookmarked instant sits inside the clip.
+  It should be roughly the keyframe lead-in (a few seconds), and it is the
+  position the referee page seeks to.
+
+The camera page's own log also reports what it built, e.g.
+`uploaded clip 476KB — 19 clusters, recording time 80775-85844ms (keyframe
+lead-in 2710ms)`. If that says `no usable footage`, the bookmark window had
+already rolled out of the 20s buffer.
+
+If a tile still fails, the video element reports decode errors in the tile's
+label and in the referee page's browser console rather than failing silently.
+
+## Troubleshooting: camera page says "UNSUPPORTED CONTAINER"
+
+The clip builder understands WebM only. If a browser's `MediaRecorder` hands
+back fragmented MP4 instead (Safari does this), the page says so loudly and
+stops producing clips rather than uploading files that cannot decode. Slicing
+fMP4 needs different surgery — whole `moof`/`mdat` fragments with
+`baseMediaDecodeTime` rewritten — which is not implemented. **This is the main
+untested risk on iPhone**; check the `using mimeType:` line in the camera
+page's log first thing when testing on iOS.
+
+## Verifying without phones
+
+`spike/test/` drives real headless Chromium instances against the running
+server, replacing the camera with a canvas that renders a clock driven by a
+shared epoch — so every fake camera shows the same time at the same real
+instant regardless of when it started recording. The clock is also drawn as a
+binary bar that `ffmpeg` reads back out of the decoded clip, so the harness
+asserts rather than asking you to eyeball a screenshot.
+
+```
+cd spike/server && npm start     # in one terminal
+
+cd spike/test
+npm install
+npx playwright install chromium  # once, downloads the browser it drives
+npm test
+```
+
+`npm test` runs two cameras staggered 9s apart and taps one bookmark on the
+first; `npm run test:single` runs one camera with bookmarks at 8s, 45s and 85s
+(the case that used to fail). Both check that each clip, seeked to its reported
+bookmark offset, shows the moment the bookmark was actually tapped — and that
+the angles agree with each other. A run ends in `PASS` or `FAIL`, and drops a
+screenshot of the referee page in `spike/test/referee.png`.
+
+Typical healthy output:
+
+```
+  ok   north: clip shows 40.15s at its bookmark offset 2.21s (drift -101ms)
+  ok   east: clip shows 40.10s at its bookmark offset 3.06s (drift -151ms)
+  ok   cross-camera spread: 50ms across 2 angles
+```
+
+The consistent ~100ms negative drift is tap-to-broadcast latency plus frame
+quantisation, not error accumulation. Note this exercises the pipeline, not
+the phones — it says nothing about Wake Lock, screen lock, or iOS.
 
 ## Test protocol — what we're actually checking
 
@@ -230,10 +326,14 @@ errors there (and in the video tile's label) instead of failing silently.
 - [ ] **Cross-camera sync**: with two phones running, tap bookmark and check
       whether the two clips actually show the "same moment" using nothing but
       the timestamp-offset sync — good enough for refereeing, or noticeably
-      off?
+      off? (Headless, on one machine, this measures ~50ms between angles;
+      real phones on Wi-Fi will be worse, since each phone's clock offset is
+      estimated over the network.)
 - [ ] **iOS specifics** (this is the known risk area): test on the iPhone
-      13 mini first — mimeType picked, whether Wake Lock is honored, whether
-      screen-lock kills the stream despite it.
+      13 mini first — **which mimeType it picks** (if it is MP4 rather than
+      WebM, clip building will refuse outright — see the UNSUPPORTED CONTAINER
+      note above), whether Wake Lock is honored, whether screen-lock kills the
+      stream despite it.
 
 ## Success / failure read-out
 

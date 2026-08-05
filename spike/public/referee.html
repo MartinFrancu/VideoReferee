@@ -12,7 +12,13 @@
   #bookmarkList { list-style: none; margin: 0; padding: 0; }
   #bookmarkList li { padding: 10px 12px; border-bottom: 1px solid #2a2a2a; cursor: pointer; font-size: 13px; }
   #bookmarkList li:hover, #bookmarkList li.active { background: #2a2a2a; }
-  #stage { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; padding: 12px; align-content: start; }
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #controls { display: none; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #333; }
+  #controls button { padding: 6px 14px; border: none; border-radius: 6px; background: #e74c3c; color: #fff; font-size: 14px; }
+  #scrub { flex: 1; max-width: 480px; }
+  #scrubLabel { font-variant-numeric: tabular-nums; font-size: 13px; min-width: 60px; }
+  #hint { font-size: 12px; opacity: 0.5; }
+  #stage { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; padding: 12px; align-content: start; }
   .clip { background: #000; border-radius: 8px; overflow: hidden; }
   .clip .label { padding: 6px 10px; font-size: 13px; background: #222; }
   .clip video { width: 100%; display: block; background: #000; }
@@ -25,7 +31,15 @@
       <h2>Bookmarks</h2>
       <ul id="bookmarkList"></ul>
     </div>
-    <div id="stage"><div id="empty">Select a bookmark to review its angles.</div></div>
+    <div id="main">
+      <div id="controls">
+        <button id="playBtn">Play all</button>
+        <input id="scrub" type="range" />
+        <span id="scrubLabel">+0.00s</span>
+        <span id="hint">relative to the bookmarked moment</span>
+      </div>
+      <div id="stage"><div id="empty">Select a bookmark to review its angles.</div></div>
+    </div>
   </div>
   <script src="referee.js"></script>
 </body>

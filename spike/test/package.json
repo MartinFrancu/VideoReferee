@@ -1,0 +1,15 @@
+{
+  "name": "videoreferee-spike-test",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Headless end-to-end harness for the VideoReferee spike — drives fake cameras so the bookmark/review loop can be verified without phones.",
+  "scripts": {
+    "test": "node harness.js",
+    "test:single": "node harness.js --cameras 1 --marks 8,45,85"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0",
+    "playwright": "^1.49.0"
+  }
+}

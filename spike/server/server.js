@@ -49,10 +49,14 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 app.post('/upload', (req, res) => {
-  const { bookmarkId, cameraId } = req.query;
+  const { bookmarkId, cameraId, clipStart } = req.query;
   const bookmark = bookmarks.get(bookmarkId);
   if (!bookmark) return res.status(404).send('unknown bookmark');
   if (!cameraId) return res.status(400).send('missing cameraId');
+  // Server-clock time of this clip's first frame. The referee page needs it to
+  // know where the bookmark falls inside the clip — clips start at whichever
+  // keyframe preceded the window, so that offset differs per camera.
+  const clipStartServerTime = Number(clipStart);
 
   const chunks = [];
   let total = 0;
@@ -80,7 +84,7 @@ app.post('/upload', (req, res) => {
 
     const filename = `${bookmarkId}_${sanitize(cameraId)}.webm`;
     fs.writeFileSync(path.join(CLIPS_DIR, filename), body);
-    bookmark.clips[cameraId] = filename;
+    bookmark.clips[cameraId] = { filename, clipStart: clipStartServerTime };
 
     // A valid WebM/Matroska file must start with the EBML magic bytes
     // 1a45dfa3. If this ever prints something else, the header chunk isn't
@@ -88,9 +92,16 @@ app.post('/upload', (req, res) => {
     // logic isn't working) — that's a client-side bug, not a demuxer quirk.
     const headerHex = body.subarray(0, 4).toString('hex');
     const looksLikeValidWebm = headerHex === '1a45dfa3';
-    broadcast({ type: 'clipReady', bookmarkId, cameraId, url: `/clips/${filename}` });
+    broadcast({
+      type: 'clipReady',
+      bookmarkId,
+      cameraId,
+      url: `/clips/${filename}`,
+      clipStart: clipStartServerTime,
+    });
     console.log(
       `clip received: bookmark=${bookmarkId} camera=${cameraId} bytes=${body.length} ` +
+        `bookmarkOffsetInClip=${((bookmark.serverTime - clipStartServerTime) / 1000).toFixed(2)}s ` +
         `header=${headerHex} (${looksLikeValidWebm ? 'looks like valid WebM' : 'NOT a valid WebM header!'})`
     );
     res.sendStatus(200);
