@@ -10,18 +10,6 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Ordered so each test has a reason to exist given the ones before it. Roughly four
 batches.
 
-### Batch 1 — reading structure out of a recording
-
-Fixture: `full.webm` (12&nbsp;s, VP9+Opus, Chrome, canvas source).
-
-1. finds the init segment as the bytes before the first cluster
-2. reads each cluster's timecode in milliseconds
-3. skips a leading partial cluster when the byte run starts mid-cluster
-4. treats a cluster id occurring inside block payload as data, not a cluster start
-
-> (4) is the false-positive guard. It needs a crafted fixture rather than a
-> recorded one — a byte run with `1f 43 b6 75` embedded in a block.
-
 ### Batch 2 — finding what is decodable
 
 5. identifies the video track number from the Tracks element
@@ -100,7 +88,41 @@ Unordered. Promote into `Now` when it earns it.
 
 ## Done
 
-*(empty — M1 not started)*
+### Batch 1 — reading structure out of a recording
+
+Fixture `two-keyframe-gaps.webm`. Module `src/core/media/webm.ts`.
+
+1. ✅ finds the init segment as the bytes before the first cluster
+2. ✅ reads every cluster and its timecode in milliseconds
+3. ✅ skips a leading partial cluster when the run starts mid-cluster
+4. ✅ treats a cluster id inside block payload as data, not a cluster start
+
+---
+
+## Notes from the loop
+
+**Batch 1 — ported logic does not get driven by its tests.** Tests 1 and 2 went
+red first and drove the code. Tests 3 and 4 passed the moment they were written,
+because the implementation had already been derived in the spike. So they are
+characterisation tests, not design pressure: they lock in behaviour we already
+had rather than discovering it.
+
+That is a fair trade here — these are exactly the cases that produced the
+"every bookmark shows the same early moment" bug — but it means batch 1 proved
+less about the design than the ceremony suggests. Expect real design pressure
+only where the code is genuinely new: the cut API (batch 3) and the timeline
+maths (batch 4).
+
+**Tests that never go red need a manufactured red.** Both were verified by
+mutation: dropping the Timecode-child check from `isClusterStart` makes test 4
+fail (`expected [ { timeMs: Infinity }, …(1) ] to have a length of 1 but got 2`).
+
+**Test 3 survived that mutation.** It passes for a reason unrelated to what it
+claims to test — the bytes before its slice point simply contain no cluster-id
+sequence, so even a loosened check finds the same first cluster. It still earns
+its place as a regression guard on the architecture (mid-stream runs are the
+whole point of the dumb-phone design), but it is not load-bearing as a detector.
+A stronger version would slice at a point whose leading bytes do contain a decoy.
 
 ---
 
@@ -109,4 +131,5 @@ Unordered. Promote into `Now` when it earns it.
 Reports from the stop-and-ask rule: tests that needed disproportionate setup, and
 what the design might have wanted instead.
 
-*(empty)*
+*(none yet — test 4's 8-line setup is at the edge of comfortable, and points at
+wanting a small fixture-builder helper if more crafted runs are needed)*
