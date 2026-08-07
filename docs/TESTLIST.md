@@ -328,6 +328,36 @@ that was the right way round: batch 1 left the extent out because nothing needed
 it, and the test that needed it said so. Cutting will use the same two fields, so
 no speculative field was ever added.
 
+**The platform no test could see.** First run on the tournament laptop, the hub
+died on its first page load: `EISDIR: illegal operation on a directory, read`.
+Static serving was running `path.normalize` over the URL path — but `normalize`
+is a *filesystem* operation, and on Windows it rewrites `/operator/` as
+`\operator\`. That matched no route, so the request skipped the Angular bundle,
+fell through to the web root, and resolved to the directory `web/operator`.
+`existsSync` says yes to a directory; `readFileSync` throws.
+
+Nine stages of walkthroughs never saw it, because every one of them ran on Linux
+here, where `normalize` leaves the path alone. The three tests that pinned the
+routing were all satisfied by the broken code.
+
+The general lesson is bigger than Windows: **a URL is not a path.** URLs are
+always POSIX-shaped and percent-encoded; filesystem paths are whatever the host
+says. Parse the URL as a URL, check each segment whole, and only then hand the
+segments to `join`.
+
+The narrower lesson is about reach. The bug lived on the one platform the tests
+could not run on — so the fix injects the path flavour, and `node:path` ships
+`win32` everywhere. `resolveStaticPath on Windows` fails against the old logic
+while every Linux-shaped test in the same file still passes, which is exactly
+the shape of the blind spot.
+
+Two smaller things made a bad path fatal rather than a 404: nothing checked
+whether the resolved target was a directory before reading it, and an unhandled
+throw anywhere in the request handler killed the process. A bout is a long-lived
+process holding state that exists nowhere else — one malformed request should
+never be able to end it. Both are now closed, and a malformed JSON body (which
+was also fatal) returns 500.
+
 ---
 
 ## Design smells

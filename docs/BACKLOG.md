@@ -100,6 +100,14 @@ signal to wrap the camera page in Capacitor rather than fight the browser.
 **A bout access token.** Nothing currently stops a phone on the same Wi-Fi from
 injecting bookmarks.
 
+**A walkthrough that runs on Windows.** The hub is developed on Linux and run at
+the tournament on a Windows laptop, and the first thing that platform gap
+produced was a hub that died on its first page load (see TESTLIST). The unit
+tests now reach Windows by injecting the path flavour, but no end-to-end
+walkthrough has ever run there. Everything touching the filesystem — clip
+filenames, the certs directory, `web/operator/dist` — is unverified on the
+platform that actually matters at an event.
+
 ---
 
 ## Beyond the slice
