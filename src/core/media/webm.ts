@@ -75,6 +75,12 @@ function findClusterStarts(bytes: Uint8Array): number[] {
 export interface Cluster {
   /** Cluster timecode, in milliseconds since the recording started. */
   readonly timeMs: number;
+  /**
+   * Where this cluster begins in the run it was read from. The camera reports
+   * chunk arrivals by byte offset and cannot read a timecode, so this is the
+   * only thing that lets the two be matched up.
+   */
+  readonly offset: number;
   /** The cluster's own bytes, from its id up to the next cluster or the end of the run. */
   readonly bytes: Uint8Array;
   /** Offset into `bytes` where the cluster's children begin, just past the Timecode. */
@@ -105,6 +111,7 @@ function readCluster(bytes: Uint8Array, start: number, end: number): Cluster {
   const header = clusterHeader(bytes, start);
   return {
     timeMs: readUint(bytes, header.timecodeValuePos, header.timecodeValueLength),
+    offset: start,
     bytes: bytes.subarray(start, end),
     bodyOffset: header.bodyOffset - start,
   };

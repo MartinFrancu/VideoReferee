@@ -12,11 +12,14 @@ that only get easier to answer once the tool exists — those are marked
 
 ## Sync and timing
 
-**Media origin from chunk arrivals** — *in the slice, not deferred.*
-`recorder.onstart` is not when a recording's clock starts; measured error was
-589 ms on one camera and 1445 ms on another, so two angles land ~860 ms apart.
-Must be solved for the slice to be worth using. Kept in one module so the method
-can be swapped without touching anything else.
+**A residual ~100 ms shared bias in the media origin.** The origin is inferred
+from the smallest delay ever observed between filming and arrival, and no chunk
+arrives with zero delay, so the estimate lands slightly late and every clip
+shifts slightly early. Measured at 80-100 ms. It is the same on every camera, so
+the angles still agree to 20 ms and review is unaffected; it is also small
+against 1.5 s of pre-roll. Correctable only by calibrating a typical encode
+latency, which is guesswork — leave it unless something actually needs absolute
+accuracy. Lives in `src/core/timeline/media-origin.ts`, one module.
 
 **A better sync method than the fastest-round-trip estimate.**
 A hub heartbeat every second or so, feeding a rolling estimate, is likely good

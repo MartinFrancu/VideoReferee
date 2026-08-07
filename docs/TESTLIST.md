@@ -10,23 +10,6 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Stages refer to the road map. `Done` keeps running numbers; items here are
 unnumbered until they land, since they get reshaped on the way.
 
-### Stage 5 — a recording's true media origin
-
-Promoted by what batch 5 measured: anchoring on `recorder.onstart` puts two
-cameras 860 ms apart. A hub cannot read the origin out of pixels, so it infers
-it — and the camera still reports only raw observations (INV-2).
-
-Every chunk arrives *later* than the media time it carries, by an
-encode-and-mux delay that is never negative. So the minimum of
-`arrivalDeviceMs - clusterMediaMs` across many chunks is the tightest available
-bound on the origin. Same shape as preferring the fastest round trip.
-
-- estimates the media origin from a chunk arrival and the timecodes it carries
-- prefers the arrival that lagged least, over many chunks
-- reports how far the origin estimate could be wrong
-- an origin estimated from arrivals lines two cameras up as well as the measured
-  one *(reuses the batch 5 fixtures; needs the generator to record arrival times)*
-
 ### Stage 6 — a bookmark reaches everyone
 
 - a bookmark reaches every connected camera, not just the one that tapped
@@ -149,6 +132,25 @@ fixtures `pair-north.webm` / `pair-east.webm` / `pair.json`.
 > bar, and **0 ms between cameras**. The clips start 2.5 s apart on the shared
 > timeline and put the bookmark at 4542 ms and 2014 ms respectively, so the
 > agreement is the alignment working rather than similar inputs.
+
+### Stage 5 — a recording's true media origin
+
+Modules `src/core/timeline/media-origin.ts`, plus `offset` on `Cluster`.
+
+28. ✅ takes the origin from the arrival that lagged least
+29. ✅ reports how far the estimate could be wrong, from the spread of the lags
+30. ✅ has nothing to say until a chunk has arrived
+31. ✅ pairs each cluster with the arrival that delivered its first byte
+32. ✅ ignores a cluster no arrival accounts for
+33. ✅ matches the origin burned into north's frames
+34. ✅ matches the origin burned into east's frames
+35. ✅ leaves the two cameras agreeing far more closely than onstart would
+
+> Measured against the frames: inferred origin is 83 ms out on one camera and
+> 55 ms on the other, where `recorder.onstart` was 796 ms and 663 ms out. The
+> divergence *between* cameras — the only figure a referee sees — drops from
+> 133 ms to 28 ms. On an earlier recording the onstart divergence was 856 ms, so
+> that error is not a fixed bias anyone could calibrate away.
 
 ### Stage 4 — the camera keeps rolling
 

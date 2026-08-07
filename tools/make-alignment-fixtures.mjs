@@ -68,9 +68,16 @@ async function record({ name, epoch, seconds, tickMs, cells, barY, barHeight, wi
     videoBitsPerSecond: 700_000,
   });
 
+  // Every chunk, with the device-clock reading at which it landed. A real camera
+  // reports exactly this and nothing more; the hub infers the rest.
   const chunks = [];
+  const arrivals = [];
+  let offset = 0;
   recorder.ondataavailable = (event) => {
-    if (event.data && event.data.size > 0) chunks.push(event.data);
+    if (!event.data || event.data.size === 0) return;
+    arrivals.push({ offset, length: event.data.size, arrivedAtDeviceMs: performance.now() });
+    offset += event.data.size;
+    chunks.push(event.data);
   };
 
   // The two readings that let a clip be placed on the shared timeline: the
@@ -90,7 +97,7 @@ async function record({ name, epoch, seconds, tickMs, cells, barY, barHeight, wi
   });
 
   const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
-  return { bytes: [...bytes], ...anchors };
+  return { bytes: [...bytes], arrivals, ...anchors };
 }
 
 const epoch = Date.now();
@@ -182,6 +189,12 @@ for (const [name, result] of [
     // How much later onstart fired than the media clock actually began.
     onStartLagMs: onStartSessionMs - mediaOriginSessionMs,
     bytes: result.bytes.length,
+    // Rounded: sub-millisecond precision means nothing here and bloats the file.
+    arrivals: result.arrivals.map((arrival) => ({
+      offset: arrival.offset,
+      length: arrival.length,
+      arrivedAtDeviceMs: Math.round(arrival.arrivedAtDeviceMs),
+    })),
   };
   console.log(
     `${name}: ${result.bytes.length} bytes, media origin at session ${mediaOriginSessionMs}ms, ` +

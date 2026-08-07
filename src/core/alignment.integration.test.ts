@@ -14,6 +14,7 @@ import ffmpeg from 'ffmpeg-static';
 
 import { cutClipForBookmark } from './alignment.js';
 import { readClusters, readInitSegment, readVideoTrackNumber } from './media/webm.js';
+import { estimateMediaOrigin, originSamples } from './timeline/media-origin.js';
 
 const FIXTURES = fileURLToPath(new URL('../../fixtures/', import.meta.url));
 const SCRATCH = fileURLToPath(new URL('../../.tmp/', import.meta.url));
@@ -34,6 +35,23 @@ function sessionTimeShownAt(file: string, offsetMs: number): number {
   return value * tickMs;
 }
 
+/** What a hub can work out about where a recording's clock started. */
+function inferOriginSessionMs(
+  cameraName: string,
+  recording: Uint8Array,
+  camera: { arrivals: []; onStartSessionMs: number; recordingStartedAtDeviceMs: number }
+): number {
+  const origin = estimateMediaOrigin(
+    originSamples({
+      clusters: readClusters(recording).map(({ offset, timeMs }) => ({ offset, timeMs })),
+      arrivals: camera.arrivals,
+    })
+  );
+  if (!origin) throw new Error(`no origin for ${cameraName}`);
+  const clockOffsetMs = camera.onStartSessionMs - camera.recordingStartedAtDeviceMs;
+  return origin.originDeviceMs + clockOffsetMs;
+}
+
 function clipFor(cameraName: string, bookmarkSessionMs: number) {
   const camera = meta.cameras[cameraName];
   const recording = new Uint8Array(readFileSync(FIXTURES + camera.recording));
@@ -44,9 +62,11 @@ function clipFor(cameraName: string, bookmarkSessionMs: number) {
     videoTrack: readVideoTrackNumber(recording) ?? 1,
     timeline: {
       clock: { offsetMs: 0, uncertaintyMs: 0 },
-      // Session time of media zero. Measured from the frames rather than taken
-      // from recorder.onstart — see fixtures/README.md.
-      recordingStartedAt: camera.mediaOriginSessionMs,
+      // Inferred exactly as the hub will infer it: from when the camera said
+      // each chunk arrived, against the timecodes we parse out of the bytes.
+      // Not read from the fixture's measured value, so this exercises the real
+      // path rather than a convenient shortcut.
+      recordingStartedAt: inferOriginSessionMs(cameraName, recording, camera),
     },
     bookmarkSessionMs,
     preRollMs: 1500,
@@ -75,12 +95,20 @@ describe('lining two cameras up on one bookmark', () => {
     // the alignment working, not an accident of similar inputs.
     expect(north.bookmarkOffsetMs).not.toBe(east.bookmarkOffsetMs);
 
-    // Tolerances are one video frame (33 ms) plus one tick of the clock bar
-    // (20 ms), rounded up. Measured error on the committed fixtures is 0 ms
-    // between cameras and 20 ms against the bookmark, so anything approaching
-    // these bounds is a real regression rather than noise.
+    // What a referee sees is the two angles agreeing with each other. Measured
+    // at 20 ms on the committed fixtures; the bound allows one video frame
+    // (33 ms) plus one tick of the clock bar (20 ms) on top.
     expect(Math.abs(shownByNorth - shownByEast)).toBeLessThanOrEqual(60);
-    expect(Math.abs(shownByNorth - bookmarkSessionMs)).toBeLessThanOrEqual(80);
-    expect(Math.abs(shownByEast - bookmarkSessionMs)).toBeLessThanOrEqual(80);
+
+    // Absolute accuracy is looser, and unavoidably so. The origin is inferred
+    // from the smallest delay we ever observed between filming and arrival, and
+    // no chunk ever arrives with zero delay — so the estimate lands slightly
+    // late and every clip shifts slightly early. Measured at 80-100 ms here.
+    //
+    // It is a shared bias, which is why the angles still agree to 20 ms, and it
+    // is small against 1.5 s of pre-roll. Reading the origin from the frames
+    // instead gives 20 ms absolute, but a hub has no frames to read.
+    expect(Math.abs(shownByNorth - bookmarkSessionMs)).toBeLessThanOrEqual(200);
+    expect(Math.abs(shownByEast - bookmarkSessionMs)).toBeLessThanOrEqual(200);
   });
 });
