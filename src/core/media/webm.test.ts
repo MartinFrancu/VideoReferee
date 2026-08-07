@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 
-import { readClusters, readInitSegment } from '../../../src/core/media/webm.js';
+import { readClusters, readInitSegment } from './webm.js';
 
 function fixture(name: string): Uint8Array {
-  return new Uint8Array(readFileSync(fileURLToPath(new URL(`../../fixtures/${name}`, import.meta.url))));
+  return new Uint8Array(readFileSync(fileURLToPath(new URL(`../../../fixtures/${name}`, import.meta.url))));
 }
 
 describe('reading a WebM byte run', () => {
@@ -26,13 +26,16 @@ describe('reading a WebM byte run', () => {
     ]);
   });
 
-  test('skips a leading partial cluster when the run starts mid-cluster', () => {
+  test('slicing mid-cluster loses the partial cluster and nothing else', () => {
+    const recording = fixture('two-keyframe-gaps.webm');
+    const whole = readClusters(recording).map((cluster) => cluster.timeMs);
+
     // Byte 20000 is inside the cluster at 314 ms, which spans 18655..24411.
-    const midCluster = fixture('two-keyframe-gaps.webm').subarray(20_000);
+    const fromMidCluster = readClusters(recording.subarray(20_000)).map((cluster) => cluster.timeMs);
 
-    const clusters = readClusters(midCluster);
-
-    expect(clusters[0]?.timeMs).toBe(546);
+    // Drops the clusters at 0 ms and 314 ms; every later one survives intact.
+    expect(fromMidCluster).toEqual(whole.slice(2));
+    expect(fromMidCluster[0]).toBe(546);
   });
 
   test('treats a cluster id inside block payload as data, not a cluster start', () => {

@@ -100,7 +100,7 @@ Most of the value lives in the first level:
 
 ## Fixtures
 
-Committed recordings under `test/fixtures/`. Generate new ones with the harness in
+Committed recordings under `fixtures/`. Generate new ones with the harness in
 `spike/test/`, which burns a shared-epoch clock into the video as digits and as a
 machine-readable binary bar — so a test can assert *which instant* a decoded frame
 shows, not merely that decoding worked.

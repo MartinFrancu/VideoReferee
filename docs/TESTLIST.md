@@ -117,12 +117,20 @@ maths (batch 4).
 mutation: dropping the Timecode-child check from `isClusterStart` makes test 4
 fail (`expected [ { timeMs: Infinity }, …(1) ] to have a length of 1 but got 2`).
 
-**Test 3 survived that mutation.** It passes for a reason unrelated to what it
-claims to test — the bytes before its slice point simply contain no cluster-id
-sequence, so even a loosened check finds the same first cluster. It still earns
-its place as a regression guard on the architecture (mid-stream runs are the
-whole point of the dumb-phone design), but it is not load-bearing as a detector.
-A stronger version would slice at a point whose leading bytes do contain a decoy.
+**A test can only detect a mutation the fixture can express.** Test 3 survives
+the `isClusterStart` mutation above, and no rewording fixes that: the loosened
+check only misfires where a decoy `1f 43 b6 75` exists, and the real recording
+contains none outside genuine cluster starts. Detecting it requires a crafted
+run, which is exactly what test 4 is for.
+
+Test 3 was still strengthened — it now asserts that a mid-stream slice yields
+*every* later cluster unchanged, rather than just checking the first one — and it
+is load-bearing for its own claim. Mutating `findClusterStarts` to assume the run
+begins at a cluster boundary fails all four tests, test 3 with
+`expected [ 1.2331101224956094e+303, 546, …(40) ] to deeply equal [ 314, 546, … ]`.
+
+The general lesson: pick the mutation that matches the test's claim, not a
+convenient one. A test surviving an unrelated mutation says nothing.
 
 ---
 
