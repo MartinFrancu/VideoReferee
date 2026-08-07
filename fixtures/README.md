@@ -59,14 +59,20 @@ Keyframe clusters in **bold**.
 
 ### Regenerating
 
+**There is no live recipe for this one.** It was produced by the spike harness,
+and the spike was deleted once its work had been ported. Recover the harness from
+git if this fixture ever needs regenerating:
+
 ```
-cd spike/server && npm start
-cd spike/test && npm install && node harness.js --cameras 1 --marks 10
+git show 9cfe058:spike/test/harness.js > harness.js
+git show 9cfe058:spike/server/server.js > server.js
 ```
 
 The harness burns a shared-epoch clock into the video, both as digits and as a
 16-cell binary bar readable by `ffmpeg` — so a test can assert *which instant* a
-decoded frame shows, not merely that it decoded.
+decoded frame shows, not merely that it decoded. `tools/make-alignment-fixtures.mjs`
+does the same job for the pair below and is the model to follow if this ever gets
+a modern replacement.
 
 ---
 

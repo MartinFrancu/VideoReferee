@@ -100,10 +100,10 @@ Most of the value lives in the first level:
 
 ## Fixtures
 
-Committed recordings under `fixtures/`. Generate new ones with the harness in
-`spike/test/`, which burns a shared-epoch clock into the video as digits and as a
-machine-readable binary bar — so a test can assert *which instant* a decoded frame
-shows, not merely that decoding worked.
+Committed recordings under `fixtures/`. Generate new ones with
+`tools/make-alignment-fixtures.mjs`, which burns a shared-epoch clock into the
+video as digits and as a machine-readable binary bar — so a test can assert
+*which instant* a decoded frame shows, not merely that decoding worked.
 
 Keep fixtures small (a few seconds), and record what each one is for in a
 `fixtures/README.md` — an unexplained binary blob is worse than no fixture.
