@@ -48,6 +48,17 @@ never argues with the root project's. `npm run build:operator` installs and
 builds it; the hub serves whatever `dist/browser` contains, and says so plainly
 if it has not been built.
 
+Angular's own agent skills are vendored under `.claude/skills/angular-developer`
+and `angular-new-app`, from <https://github.com/angular/skills>. They are real
+files rather than the symlinks the installer creates, because symlinks in a git
+checkout need extra configuration on Windows. To update them, re-run
+`npx skills add https://github.com/angular/skills` and move `.agents/skills/*`
+into `.claude/skills/`.
+
+Two conventions come from that skill and are worth keeping: forms use
+**Signal Forms** (`@angular/forms/signals`), not reactive or template-driven
+forms, and HTTP goes through `HttpClient` rather than bare `fetch`.
+
 `src/core/` may not import anything from `src/hub/`, `web/`, `fs`, or `ws`, and may
 not read a clock. That single rule is what keeps the suite fast and deterministic.
 

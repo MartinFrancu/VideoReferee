@@ -1,4 +1,6 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
 /** Mirrors CameraView in src/core/protocol.ts. */
 export interface Camera {
@@ -35,6 +37,8 @@ export class Hub {
   readonly phase = signal<BoutPhase>('idle');
   readonly connected = signal(false);
 
+  readonly #http = inject(HttpClient);
+
   constructor() {
     this.#connect();
   }
@@ -54,20 +58,11 @@ export class Hub {
     });
   }
 
-  async addCamera(name: string): Promise<NewCamera> {
-    const response = await fetch('/api/cameras', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    return response.json();
+  addCamera(name: string): Promise<NewCamera> {
+    return firstValueFrom(this.#http.post<NewCamera>('/api/cameras', { name }));
   }
 
   async setPhase(phase: BoutPhase): Promise<void> {
-    await fetch('/api/bout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phase }),
-    });
+    await firstValueFrom(this.#http.post('/api/bout', { phase }));
   }
 }
