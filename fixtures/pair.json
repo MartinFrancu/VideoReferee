@@ -1,0 +1,28 @@
+{
+  "note": "Session time is milliseconds since a shared epoch, burned into every frame.",
+  "clockBar": {
+    "cells": 16,
+    "tickMs": 20,
+    "y": 420,
+    "height": 50,
+    "width": 640
+  },
+  "cameras": {
+    "north": {
+      "recording": "pair-north.webm",
+      "mediaOriginSessionMs": 740,
+      "recordingStartedAtDeviceMs": 845,
+      "onStartSessionMs": 1329,
+      "onStartLagMs": 589,
+      "bytes": 866283
+    },
+    "east": {
+      "recording": "pair-east.webm",
+      "mediaOriginSessionMs": 6560,
+      "recordingStartedAtDeviceMs": 1552,
+      "onStartSessionMs": 8005,
+      "onStartLagMs": 1445,
+      "bytes": 891425
+    }
+  }
+}

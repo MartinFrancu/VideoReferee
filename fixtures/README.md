@@ -67,3 +67,50 @@ cd spike/test && npm install && node harness.js --cameras 1 --marks 10
 The harness burns a shared-epoch clock into the video, both as digits and as a
 16-cell binary bar readable by `ffmpeg` — so a test can assert *which instant* a
 decoded frame shows, not merely that it decoded.
+
+---
+
+## `pair-north.webm` + `pair-east.webm` + `pair.json`
+
+The staggered pair used by `src/core/alignment.integration.test.ts`. Two cameras
+record the same stretch of wall-clock time but start about six seconds apart, so
+their media timelines have unrelated origins — the situation that makes clips
+look aligned when they are not.
+
+Every frame carries the session time it was captured at, twice: as digits for a
+human, and as a 16-cell binary bar that `ffmpeg` can read back out of a decoded
+frame. A clip can therefore be asked what moment it is *actually* showing,
+without trusting any of our own bookkeeping.
+
+The bar is described by `clockBar` in `pair.json`: 16 cells across the full
+width, cell *i* lit when bit *i* of `round(sessionMs / 20)` is set, occupying
+50 px at y=420. Crop that strip, average each cell to one pixel, threshold at
+half brightness.
+
+Regenerate with `node tools/make-alignment-fixtures.mjs`, which needs
+`npx playwright install chromium` once. Every number in `pair.json` is measured,
+not assumed — including the media origin, which is read back out of the frames.
+
+### `recorder.onstart` is not the media time origin
+
+Measured on these recordings:
+
+| camera | media origin (session) | `onstart` fired at | lag |
+|---|---|---|---|
+| north | 740 ms | 1329 ms | **589 ms** |
+| east | 6560 ms | 8005 ms | **1445 ms** |
+
+A recording's media time zero is roughly when the *track* began producing
+frames, which is before `MediaRecorder.start()` is called and well before
+`onstart` fires. The gap is not constant: it depends on what the device was
+doing during setup, and here the two cameras differ by 856 ms.
+
+This matters because the spike anchors on exactly that event
+(`recordingStartLocal = Date.now()` in `onstart`). Substituting `onStartSessionMs`
+for `mediaOriginSessionMs` in the alignment test moves the two angles 860 ms
+apart — `expected 860 to be less than or equal to 60` — against 0 ms with the
+measured origin.
+
+The fixtures record both values so the difference stays visible. A hub cannot
+measure the origin from pixels, so it needs another way to find it; see
+`docs/TESTLIST.md`.

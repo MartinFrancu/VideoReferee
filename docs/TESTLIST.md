@@ -10,16 +10,26 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Ordered so each test has a reason to exist given the ones before it. Roughly four
 batches.
 
-### Batch 5 — the claim the product rests on
+### Batch 6 — finding a recording's true media origin
 
-19. **two recordings with different start anchors produce clips whose bookmark
-    offsets refer to the same instant**
+Promoted straight to `Now` by what batch 5 measured: anchoring on
+`recorder.onstart` puts two cameras 860 ms apart. A hub cannot read the origin
+out of pixels, so it needs to infer it.
 
-> The money test: decode each clip at its reported bookmark offset and compare
-> the binary-clock value burned into the frame. Needs a fixture pair recorded
-> with staggered starts, and a decoder — so it lands at the integration level,
-> not in the unit suite. Extend `spike/test` to dump two full recordings plus
-> each camera's start anchor.
+The proposal, which keeps INV-2 intact — the camera reports only the device-clock
+time at which each chunk arrived, and the hub already parses the cluster
+timecodes inside those chunks. Every arrival is *later* than the media time it
+carries, by an encode-and-mux delay that is never negative, so the minimum of
+`arrivalDeviceMs - clusterMediaMs` over many chunks is the tightest available
+bound on the origin. Same shape as preferring the fastest round trip.
+
+20. estimates the media origin from a chunk arrival and the timecodes it carries
+21. prefers the arrival that lagged least, over many chunks
+22. reports how far the origin estimate could be wrong
+23. an origin estimated from arrivals lines two cameras up as well as the measured one
+
+> (23) reuses the batch 5 fixtures, so it needs the generator to also record
+> per-chunk arrival times.
 
 ---
 
@@ -125,6 +135,19 @@ Modules `src/core/timeline/clock.ts` and `src/core/timeline/session-time.ts`.
 > is exactly that bound. Item 17 became two tests, one per direction — both are
 > needed by the same flow and they are separate behaviours.
 
+### Batch 5 — the claim the product rests on
+
+Module `src/core/alignment.ts`, test `src/core/alignment.integration.test.ts`,
+fixtures `pair-north.webm` / `pair-east.webm` / `pair.json`.
+
+19. ✅ two recordings with different start anchors meet at the same instant
+
+> Measured on the committed fixtures: both angles show 12020 ms for a bookmark
+> asked for at 12000 ms — 20 ms absolute error, which is one tick of the clock
+> bar, and **0 ms between cameras**. The clips start 2.5 s apart on the shared
+> timeline and put the bookmark at 4542 ms and 2014 ms respectively, so the
+> agreement is the alignment working rather than similar inputs.
+
 ---
 
 ## Notes from the loop
@@ -198,6 +221,22 @@ disagree. Otherwise the test pins neither.
 `toSessionMs` use `offsetMs` and `recordingStartedAt` only as their total, so no
 test can distinguish a mis-split between them. That is not a hole in the tests —
 it is the model. The pair never appears separately.
+
+**Batch 5 — the test found the bug before it was written.** Generating the
+fixture pair meant recording each camera's start anchor, and checking that anchor
+against the clock burned into the frames showed it was wrong by 589 ms for one
+camera and 1445 ms for the other. `recorder.onstart` fires well after the media
+clock has started, by an amount that varies with what the device was doing.
+
+The spike anchors on exactly that event. Feeding `onStartSessionMs` into the
+alignment test instead of the measured origin fails it with
+`expected 860 to be less than or equal to 60`.
+
+Two lessons. Building an honest fixture is itself a test — the discrepancy
+surfaced while writing the generator, not while writing the assertion. And a
+tolerance should be set from the measurement, not guessed beforehand: the initial
+bounds of 100 ms and 150 ms would have passed with the 860 ms bug present had the
+anchor been slightly better, because they were picked before anything was known.
 
 **Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
 that was the right way round: batch 1 left the extent out because nothing needed
