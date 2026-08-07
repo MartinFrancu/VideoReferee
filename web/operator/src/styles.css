@@ -1,0 +1,44 @@
+:root {
+  --ground: #11151a;
+  --panel: #1a2027;
+  --rule: #2b343d;
+  --ink: #e6edf2;
+  --faded: #8fa1ae;
+  --live: #4bbf73;
+  --dead: #d9534f;
+  --accent: #45bec9;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+button {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #06232a; font-weight: 600; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--rule);
+  background: var(--ground);
+  color: var(--ink);
+  min-width: 200px;
+}
+
+/* The QR arrives as markup from the hub and is injected with innerHTML, so it
+   never carries a component's style scope. It has to be reached from here. */
+.qr svg { display: block; width: 100%; height: auto; }

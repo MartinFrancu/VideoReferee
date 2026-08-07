@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.tmp/
+certs/
+clips/
+web/operator/.angular/

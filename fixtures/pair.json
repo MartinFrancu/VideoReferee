@@ -1,0 +1,517 @@
+{
+  "note": "Session time is milliseconds since a shared epoch, burned into every frame.",
+  "clockBar": {
+    "cells": 16,
+    "tickMs": 20,
+    "y": 420,
+    "height": 50,
+    "width": 640
+  },
+  "cameras": {
+    "north": {
+      "recording": "pair-north.webm",
+      "mediaOriginSessionMs": 1400,
+      "recordingStartedAtDeviceMs": 961,
+      "onStartSessionMs": 2196,
+      "onStartLagMs": 796,
+      "bytes": 898611,
+      "arrivals": [
+        {
+          "offset": 0,
+          "length": 1,
+          "arrivedAtDeviceMs": 962
+        },
+        {
+          "offset": 1,
+          "length": 38503,
+          "arrivedAtDeviceMs": 1268
+        },
+        {
+          "offset": 38504,
+          "length": 17061,
+          "arrivedAtDeviceMs": 1565
+        },
+        {
+          "offset": 55565,
+          "length": 20253,
+          "arrivedAtDeviceMs": 1866
+        },
+        {
+          "offset": 75818,
+          "length": 20644,
+          "arrivedAtDeviceMs": 2165
+        },
+        {
+          "offset": 96462,
+          "length": 18796,
+          "arrivedAtDeviceMs": 2465
+        },
+        {
+          "offset": 115258,
+          "length": 15491,
+          "arrivedAtDeviceMs": 2767
+        },
+        {
+          "offset": 130749,
+          "length": 18685,
+          "arrivedAtDeviceMs": 3065
+        },
+        {
+          "offset": 149434,
+          "length": 17669,
+          "arrivedAtDeviceMs": 3365
+        },
+        {
+          "offset": 167103,
+          "length": 22155,
+          "arrivedAtDeviceMs": 3666
+        },
+        {
+          "offset": 189258,
+          "length": 18605,
+          "arrivedAtDeviceMs": 3965
+        },
+        {
+          "offset": 207863,
+          "length": 17789,
+          "arrivedAtDeviceMs": 4265
+        },
+        {
+          "offset": 225652,
+          "length": 18484,
+          "arrivedAtDeviceMs": 4564
+        },
+        {
+          "offset": 244136,
+          "length": 17027,
+          "arrivedAtDeviceMs": 4865
+        },
+        {
+          "offset": 261163,
+          "length": 19372,
+          "arrivedAtDeviceMs": 5165
+        },
+        {
+          "offset": 280535,
+          "length": 17471,
+          "arrivedAtDeviceMs": 5465
+        },
+        {
+          "offset": 298006,
+          "length": 18433,
+          "arrivedAtDeviceMs": 5765
+        },
+        {
+          "offset": 316439,
+          "length": 18892,
+          "arrivedAtDeviceMs": 6065
+        },
+        {
+          "offset": 335331,
+          "length": 17486,
+          "arrivedAtDeviceMs": 6365
+        },
+        {
+          "offset": 352817,
+          "length": 19326,
+          "arrivedAtDeviceMs": 6665
+        },
+        {
+          "offset": 372143,
+          "length": 20709,
+          "arrivedAtDeviceMs": 6965
+        },
+        {
+          "offset": 392852,
+          "length": 18336,
+          "arrivedAtDeviceMs": 7264
+        },
+        {
+          "offset": 411188,
+          "length": 17466,
+          "arrivedAtDeviceMs": 7565
+        },
+        {
+          "offset": 428654,
+          "length": 21057,
+          "arrivedAtDeviceMs": 7864
+        },
+        {
+          "offset": 449711,
+          "length": 17946,
+          "arrivedAtDeviceMs": 8164
+        },
+        {
+          "offset": 467657,
+          "length": 17404,
+          "arrivedAtDeviceMs": 8465
+        },
+        {
+          "offset": 485061,
+          "length": 19017,
+          "arrivedAtDeviceMs": 8765
+        },
+        {
+          "offset": 504078,
+          "length": 17263,
+          "arrivedAtDeviceMs": 9065
+        },
+        {
+          "offset": 521341,
+          "length": 17851,
+          "arrivedAtDeviceMs": 9364
+        },
+        {
+          "offset": 539192,
+          "length": 17495,
+          "arrivedAtDeviceMs": 9664
+        },
+        {
+          "offset": 556687,
+          "length": 17423,
+          "arrivedAtDeviceMs": 9964
+        },
+        {
+          "offset": 574110,
+          "length": 18269,
+          "arrivedAtDeviceMs": 10265
+        },
+        {
+          "offset": 592379,
+          "length": 24132,
+          "arrivedAtDeviceMs": 10567
+        },
+        {
+          "offset": 616511,
+          "length": 20662,
+          "arrivedAtDeviceMs": 10864
+        },
+        {
+          "offset": 637173,
+          "length": 14561,
+          "arrivedAtDeviceMs": 11164
+        },
+        {
+          "offset": 651734,
+          "length": 19469,
+          "arrivedAtDeviceMs": 11464
+        },
+        {
+          "offset": 671203,
+          "length": 18200,
+          "arrivedAtDeviceMs": 11764
+        },
+        {
+          "offset": 689403,
+          "length": 20183,
+          "arrivedAtDeviceMs": 12064
+        },
+        {
+          "offset": 709586,
+          "length": 18336,
+          "arrivedAtDeviceMs": 12364
+        },
+        {
+          "offset": 727922,
+          "length": 18560,
+          "arrivedAtDeviceMs": 12664
+        },
+        {
+          "offset": 746482,
+          "length": 19843,
+          "arrivedAtDeviceMs": 12964
+        },
+        {
+          "offset": 766325,
+          "length": 15620,
+          "arrivedAtDeviceMs": 13265
+        },
+        {
+          "offset": 781945,
+          "length": 18986,
+          "arrivedAtDeviceMs": 13565
+        },
+        {
+          "offset": 800931,
+          "length": 26704,
+          "arrivedAtDeviceMs": 13865
+        },
+        {
+          "offset": 827635,
+          "length": 16739,
+          "arrivedAtDeviceMs": 14164
+        },
+        {
+          "offset": 844374,
+          "length": 18408,
+          "arrivedAtDeviceMs": 14464
+        },
+        {
+          "offset": 862782,
+          "length": 18773,
+          "arrivedAtDeviceMs": 14764
+        },
+        {
+          "offset": 881555,
+          "length": 17056,
+          "arrivedAtDeviceMs": 14966
+        }
+      ]
+    },
+    "east": {
+      "recording": "pair-east.webm",
+      "mediaOriginSessionMs": 7000,
+      "recordingStartedAtDeviceMs": 748,
+      "onStartSessionMs": 7663,
+      "onStartLagMs": 663,
+      "bytes": 886054,
+      "arrivals": [
+        {
+          "offset": 0,
+          "length": 1,
+          "arrivedAtDeviceMs": 748
+        },
+        {
+          "offset": 1,
+          "length": 32433,
+          "arrivedAtDeviceMs": 1001
+        },
+        {
+          "offset": 32434,
+          "length": 16149,
+          "arrivedAtDeviceMs": 1310
+        },
+        {
+          "offset": 48583,
+          "length": 19655,
+          "arrivedAtDeviceMs": 1598
+        },
+        {
+          "offset": 68238,
+          "length": 14680,
+          "arrivedAtDeviceMs": 1898
+        },
+        {
+          "offset": 82918,
+          "length": 18538,
+          "arrivedAtDeviceMs": 2198
+        },
+        {
+          "offset": 101456,
+          "length": 17924,
+          "arrivedAtDeviceMs": 2498
+        },
+        {
+          "offset": 119380,
+          "length": 17497,
+          "arrivedAtDeviceMs": 2798
+        },
+        {
+          "offset": 136877,
+          "length": 19850,
+          "arrivedAtDeviceMs": 3099
+        },
+        {
+          "offset": 156727,
+          "length": 18540,
+          "arrivedAtDeviceMs": 3398
+        },
+        {
+          "offset": 175267,
+          "length": 26309,
+          "arrivedAtDeviceMs": 3700
+        },
+        {
+          "offset": 201576,
+          "length": 15748,
+          "arrivedAtDeviceMs": 3998
+        },
+        {
+          "offset": 217324,
+          "length": 15495,
+          "arrivedAtDeviceMs": 4250
+        },
+        {
+          "offset": 232819,
+          "length": 15680,
+          "arrivedAtDeviceMs": 4538
+        },
+        {
+          "offset": 248499,
+          "length": 17144,
+          "arrivedAtDeviceMs": 4838
+        },
+        {
+          "offset": 265643,
+          "length": 19856,
+          "arrivedAtDeviceMs": 5150
+        },
+        {
+          "offset": 285499,
+          "length": 17515,
+          "arrivedAtDeviceMs": 5438
+        },
+        {
+          "offset": 303014,
+          "length": 17290,
+          "arrivedAtDeviceMs": 5738
+        },
+        {
+          "offset": 320304,
+          "length": 17941,
+          "arrivedAtDeviceMs": 6038
+        },
+        {
+          "offset": 338245,
+          "length": 18841,
+          "arrivedAtDeviceMs": 6338
+        },
+        {
+          "offset": 357086,
+          "length": 19338,
+          "arrivedAtDeviceMs": 6638
+        },
+        {
+          "offset": 376424,
+          "length": 21371,
+          "arrivedAtDeviceMs": 6938
+        },
+        {
+          "offset": 397795,
+          "length": 18142,
+          "arrivedAtDeviceMs": 7238
+        },
+        {
+          "offset": 415937,
+          "length": 15903,
+          "arrivedAtDeviceMs": 7538
+        },
+        {
+          "offset": 431840,
+          "length": 16783,
+          "arrivedAtDeviceMs": 7838
+        },
+        {
+          "offset": 448623,
+          "length": 14480,
+          "arrivedAtDeviceMs": 8089
+        },
+        {
+          "offset": 463103,
+          "length": 19047,
+          "arrivedAtDeviceMs": 8378
+        },
+        {
+          "offset": 482150,
+          "length": 14592,
+          "arrivedAtDeviceMs": 8628
+        },
+        {
+          "offset": 496742,
+          "length": 15360,
+          "arrivedAtDeviceMs": 8918
+        },
+        {
+          "offset": 512102,
+          "length": 18809,
+          "arrivedAtDeviceMs": 9218
+        },
+        {
+          "offset": 530911,
+          "length": 17481,
+          "arrivedAtDeviceMs": 9518
+        },
+        {
+          "offset": 548392,
+          "length": 18043,
+          "arrivedAtDeviceMs": 9818
+        },
+        {
+          "offset": 566435,
+          "length": 18614,
+          "arrivedAtDeviceMs": 10118
+        },
+        {
+          "offset": 585049,
+          "length": 22393,
+          "arrivedAtDeviceMs": 10418
+        },
+        {
+          "offset": 607442,
+          "length": 19698,
+          "arrivedAtDeviceMs": 10718
+        },
+        {
+          "offset": 627140,
+          "length": 16418,
+          "arrivedAtDeviceMs": 11018
+        },
+        {
+          "offset": 643558,
+          "length": 17758,
+          "arrivedAtDeviceMs": 11318
+        },
+        {
+          "offset": 661316,
+          "length": 19202,
+          "arrivedAtDeviceMs": 11618
+        },
+        {
+          "offset": 680518,
+          "length": 17137,
+          "arrivedAtDeviceMs": 11929
+        },
+        {
+          "offset": 697655,
+          "length": 20857,
+          "arrivedAtDeviceMs": 12218
+        },
+        {
+          "offset": 718512,
+          "length": 14482,
+          "arrivedAtDeviceMs": 12469
+        },
+        {
+          "offset": 732994,
+          "length": 17438,
+          "arrivedAtDeviceMs": 12758
+        },
+        {
+          "offset": 750432,
+          "length": 18674,
+          "arrivedAtDeviceMs": 13058
+        },
+        {
+          "offset": 769106,
+          "length": 19899,
+          "arrivedAtDeviceMs": 13358
+        },
+        {
+          "offset": 789005,
+          "length": 27252,
+          "arrivedAtDeviceMs": 13658
+        },
+        {
+          "offset": 816257,
+          "length": 18315,
+          "arrivedAtDeviceMs": 13958
+        },
+        {
+          "offset": 834572,
+          "length": 20753,
+          "arrivedAtDeviceMs": 14258
+        },
+        {
+          "offset": 855325,
+          "length": 16103,
+          "arrivedAtDeviceMs": 14558
+        },
+        {
+          "offset": 871428,
+          "length": 14626,
+          "arrivedAtDeviceMs": 14751
+        }
+      ]
+    }
+  }
+}

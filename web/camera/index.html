@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>VideoReferee — camera</title>
+<style>
+  :root { --ground: #0d1116; --panel: #1a2027; --rule: #2b343d; --ink: #e6edf2;
+          --faded: #8fa1ae; --live: #4bbf73; --dead: #d9534f; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink);
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+         border-bottom: 1px solid var(--rule); }
+  #name { font-size: 17px; font-weight: 650; }
+  #state { margin-left: auto; display: flex; align-items: center; gap: 8px;
+           font-size: 13px; color: var(--faded); }
+  .pip { width: 9px; height: 9px; border-radius: 50%; background: var(--dead); }
+  .pip.live { background: var(--live); }
+  #log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+         color: var(--faded); padding: 12px 16px; white-space: pre-wrap;
+         line-height: 1.6; overflow-y: auto; }
+  #preview { width: 100%; height: 46vh; object-fit: cover; background: #000; display: block; }
+  #bookmarkBtn {
+    display: block; width: calc(100% - 32px); margin: 14px 16px; padding: 26px;
+    font: inherit; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+    border: none; border-radius: 14px; background: var(--dead); color: #fff;
+  }
+  #bookmarkBtn.tapped { background: var(--live); }
+  #held { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--faded); }
+  #hint { padding: 14px 16px; color: var(--faded); font-size: 13.5px; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div id="bar">
+    <span id="name">joining…</span>
+    <span id="state"><span class="pip" id="pip"></span><span id="stateText">connecting</span></span>
+  </div>
+  <video id="preview" autoplay playsinline muted></video>
+  <button id="bookmarkBtn">BOOKMARK</button>
+  <div id="hint">
+    Keep this page open. <span id="held"></span>
+  </div>
+  <div id="log"></div>
+  <script type="module" src="camera.js"></script>
+</body>
+</html>
