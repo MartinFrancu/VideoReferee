@@ -19,6 +19,8 @@ import { localAddresses } from './network.js';
 const PORT = Number(process.env.PORT ?? 3000);
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const WEB = join(ROOT, 'web');
+/** The operator screen is an Angular app; the hub serves whatever `ng build` produced. */
+const OPERATOR_DIST = join(WEB, 'operator', 'dist', 'browser');
 const CERT_DIR = join(ROOT, 'certs');
 
 if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
@@ -74,15 +76,31 @@ const CONTENT_TYPES: Record<string, string> = {
 
 function serveStatic(pathname: string, res: import('node:http').ServerResponse): void {
   // A directory serves its index. Redirect rather than serve it in place: a page
-  // delivered at "/" would resolve its relative script to "/operator.js", which
-  // is not where it lives — a 404 that fails silently and leaves a dead page.
+  // delivered at "/" would resolve its relative asset paths against the wrong
+  // directory — 404s that fail silently and leave a dead page.
   if (pathname === '/') {
     res.writeHead(302, { Location: '/operator/' }).end();
     return;
   }
-  const relative = pathname.endsWith('/') ? `${pathname}index.html` : pathname;
-  const file = join(WEB, normalize(relative).replace(/^(\.\.[/\\])+/, ''));
-  if (!file.startsWith(WEB) || !existsSync(file)) {
+
+  const safe = normalize(pathname).replace(/^(\.\.[/\\])+/, '');
+  let root = WEB;
+  let relative = safe;
+
+  // Everything under /operator/ comes from the Angular bundle instead.
+  if (safe === '/operator' || safe.startsWith('/operator/')) {
+    root = OPERATOR_DIST;
+    relative = safe.slice('/operator'.length) || '/';
+    if (!existsSync(OPERATOR_DIST)) {
+      res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8' }).end(
+        '<h1>The operator screen has not been built yet</h1><p>Run <code>npm run build:operator</code>.</p>'
+      );
+      return;
+    }
+  }
+
+  const file = join(root, relative.endsWith('/') ? `${relative}index.html` : relative);
+  if (!file.startsWith(root) || !existsSync(file)) {
     res.writeHead(404).end('not found');
     return;
   }

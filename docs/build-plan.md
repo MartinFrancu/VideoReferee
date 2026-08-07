@@ -28,14 +28,25 @@ src/
   core/        # pure logic, zero IO — where TDD lives
     media/     # container: parse, keyframes, cut, rebase
     timeline/  # clock offsets, media time -> session time
-    bout/      # state machine, bookmarks
   hub/         # Node: http, ws, fs. Thin wiring around core.
 web/
   camera/      # phone page — vanilla, no framework, deliberately dumb
-  operator/    # operator page — grows; Angular when it earns it
-test/
-  fixtures/    # committed recordings
+  operator/    # operator screen — an Angular app, its own npm project
+fixtures/      # committed recordings
+tools/         # cert generation, fixture recording
 ```
+
+**Two frontends, two answers.** The operator screen is an Angular app: it grows
+bout control, a bookmark list and synchronised playback, and that is what a
+framework is for. The camera page stays vanilla and buildless — it is under two
+hundred lines, it ships to a phone that must not fail mid-bout, and its whole job
+is to hold bytes and answer pings. A build step there would buy nothing and cost
+a failure mode.
+
+The Angular app keeps its own `package.json` and `node_modules` so its toolchain
+never argues with the root project's. `npm run build:operator` installs and
+builds it; the hub serves whatever `dist/browser` contains, and says so plainly
+if it has not been built.
 
 `src/core/` may not import anything from `src/hub/`, `web/`, `fs`, or `ws`, and may
 not read a clock. That single rule is what keeps the suite fast and deterministic.

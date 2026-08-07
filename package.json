@@ -10,9 +10,11 @@
     "gen-cert": "tsx tools/gen-cert.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:operator": "npm --prefix web/operator install && npm --prefix web/operator run build"
   },
   "devDependencies": {
+    "@angular/cli": "^21.2.20",
     "@types/node": "^26.1.2",
     "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.1",

@@ -1,0 +1,48 @@
+<header>
+  <h1>VideoReferee</h1>
+  <span class="phase" data-testid="phase">{{ hub.phase() }}</span>
+  @if (!hub.connected()) {
+    <span class="offline">hub unreachable</span>
+  }
+  <span class="spacer"></span>
+  <button class="primary" data-testid="start-bout" (click)="hub.setPhase('recording')">Start bout</button>
+  <button data-testid="stop-bout" (click)="hub.setPhase('idle')">Stop</button>
+</header>
+
+<main>
+  <section>
+    <h2>Cameras</h2>
+    @if (hub.cameras().length) {
+      <div class="cameras">
+        @for (camera of hub.cameras(); track camera.id) {
+          <vr-camera-card [camera]="camera" />
+        }
+      </div>
+    } @else {
+      <p class="empty">No cameras yet. Add one and scan the code with its phone.</p>
+    }
+  </section>
+
+  <section>
+    <h2>Add a camera</h2>
+    <div class="add">
+      <input
+        [value]="newName()"
+        (input)="newName.set($any($event.target).value)"
+        (keydown.enter)="addCamera()"
+        placeholder="Who is holding it? e.g. mike"
+        autocomplete="off"
+        data-testid="camera-name"
+      />
+      <button data-testid="add-camera" (click)="addCamera()">Add camera</button>
+    </div>
+  </section>
+</main>
+
+<dialog #qrDialog data-testid="qr-dialog">
+  <h3>{{ invited()?.name }}</h3>
+  <p>Scan with that phone. Accept the certificate warning once.</p>
+  <div class="qr" data-testid="qr" [innerHTML]="qr()"></div>
+  <div class="joinUrl" data-testid="join-url">{{ invited()?.joinUrl }}</div>
+  <p class="actions"><button data-testid="close-qr" (click)="closeDialog()">Done</button></p>
+</dialog>
