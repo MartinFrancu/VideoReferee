@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 
-import { readClusters, readInitSegment } from './webm.js';
+import { isVideoKeyframe, readClusters, readInitSegment, readVideoTrackNumber } from './webm.js';
 
 function fixture(name: string): Uint8Array {
   return new Uint8Array(readFileSync(fileURLToPath(new URL(`../../../fixtures/${name}`, import.meta.url))));
@@ -53,3 +53,54 @@ describe('reading a WebM byte run', () => {
     expect(clusters[0]?.timeMs).toBe(314);
   });
 });
+
+describe('finding what is decodable', () => {
+  test('identifies the video track number from the Tracks element', () => {
+    const initSegment = readInitSegment(fixture('two-keyframe-gaps.webm'));
+
+    expect(readVideoTrackNumber(initSegment)).toBe(1);
+  });
+
+  test('marks the clusters that begin a decodable video segment', () => {
+    const recording = fixture('two-keyframe-gaps.webm');
+    const videoTrack = 1;
+
+    const keyframes = readClusters(recording)
+      .filter((cluster) => isVideoKeyframe(cluster, videoTrack))
+      .map((cluster) => cluster.timeMs);
+
+    // Four of forty-three. Counting the audio track's blocks — every one of which
+    // sets the keyframe flag — would report almost all of them.
+    expect(keyframes).toEqual([0, 3357, 6722, 10086]);
+  });
+
+  test('marks a cluster whose video arrives as a SimpleBlock with the keyframe flag', () => {
+    const cluster = clusterWithSimpleBlock({ track: 1, keyframe: true });
+
+    expect(readClusters(cluster).map((c) => isVideoKeyframe(c, 1))).toEqual([true]);
+  });
+
+  test("does not count another track's keyframe flag as a video keyframe", () => {
+    // Every Opus block sets it, so ignoring the track number reports almost
+    // every cluster as decodable.
+    const cluster = clusterWithSimpleBlock({ track: 2, keyframe: true });
+
+    expect(readClusters(cluster).map((c) => isVideoKeyframe(c, 1))).toEqual([false]);
+  });
+});
+
+/**
+ * A minimal cluster — unknown size, timecode 0, one SimpleBlock — for the block
+ * shapes our recorded fixture happens not to contain.
+ */
+function clusterWithSimpleBlock({ track, keyframe }: { track: number; keyframe: boolean }): Uint8Array {
+  return Uint8Array.from([
+    0x1f, 0x43, 0xb6, 0x75, 0xff, // Cluster, unknown size
+    0xe7, 0x81, 0x00, // Timecode = 0
+    0xa3, 0x88, // SimpleBlock, 8 bytes of payload
+    0x80 | track, // track number as a one-byte vint
+    0x00, 0x00, // timecode relative to the cluster
+    keyframe ? 0x80 : 0x00, // flags
+    0xde, 0xad, 0xbe, 0xef, // frame data
+  ]);
+}

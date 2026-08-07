@@ -10,16 +10,6 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Ordered so each test has a reason to exist given the ones before it. Roughly four
 batches.
 
-### Batch 2 — finding what is decodable
-
-5. identifies the video track number from the Tracks element
-6. marks a cluster carrying a SimpleBlock with the keyframe flag
-7. marks a cluster whose BlockGroup carries no ReferenceBlock
-8. does not mark an audio-only cluster as a video keyframe
-
-> Ground truth for 6–8 is ffprobe's keyframe list for the fixture, recorded in
-> `fixtures/README.md` so the test does not shell out.
-
 ### Batch 3 — cutting
 
 9. a cut clip begins with the init segment
@@ -97,6 +87,17 @@ Fixture `two-keyframe-gaps.webm`. Module `src/core/media/webm.ts`.
 3. ✅ skips a leading partial cluster when the run starts mid-cluster
 4. ✅ treats a cluster id inside block payload as data, not a cluster start
 
+### Batch 2 — finding what is decodable
+
+5. ✅ identifies the video track number from the Tracks element
+6. ✅ marks the clusters that begin a decodable video segment
+7. ✅ marks a cluster whose video arrives as a SimpleBlock with the keyframe flag
+8. ✅ does not count another track's keyframe flag as a video keyframe
+
+> Items 7 and 8 of the original batch collapsed into test 6 for the recorded
+> fixture, which contains only `BlockGroup` video. Tests 7 and 8 use a crafted
+> cluster instead, for the `SimpleBlock` shape the fixture happens not to have.
+
 ---
 
 ## Notes from the loop
@@ -131,6 +132,23 @@ begins at a cluster boundary fails all four tests, test 3 with
 
 The general lesson: pick the mutation that matches the test's claim, not a
 convenient one. A test surviving an unrelated mutation says nothing.
+
+**Batch 2 — the loop worked properly here, unlike batch 1.** Test 7 drove the
+`SimpleBlock` branch in minimally, checking the keyframe flag but not the track
+number, because nothing yet demanded the track. Running the suite then failed
+*test 6*: `expected [ Array(43) ] to deeply equal [ +0, 3357, 6722, 10086 ]`.
+Every one of the 43 clusters looked decodable, because every Opus block sets the
+keyframe flag.
+
+That is triangulation doing its job — an existing test forced the new code to be
+*correct*, not merely general — and it is the trap that would have silently made
+every clip start at the wrong place. Worth noting the difference from batch 1: the
+pressure appeared as soon as the code was genuinely new rather than ported.
+
+**Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
+that was the right way round: batch 1 left the extent out because nothing needed
+it, and the test that needed it said so. Cutting will use the same two fields, so
+no speculative field was ever added.
 
 ---
 
