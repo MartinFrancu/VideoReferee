@@ -30,6 +30,7 @@ if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
 
 const cameras = new CameraRegistry();
 const syncSamples = new Map<string, SyncSample[]>();
+const heldMs = new Map<string, number>();
 const cameraSockets = new Map<string, WebSocket>();
 const operatorSockets = new Set<WebSocket>();
 let boutPhase: BoutPhase = 'idle';
@@ -40,7 +41,7 @@ const sessionNow = () => Date.now();
 function cameraViews(): CameraView[] {
   return cameras.list(sessionNow()).map((camera) => {
     const clock = estimateClock(syncSamples.get(camera.id) ?? []);
-    return { ...camera, syncUncertaintyMs: clock?.uncertaintyMs ?? null };
+    return { ...camera, syncUncertaintyMs: clock?.uncertaintyMs ?? null, heldMs: heldMs.get(camera.id) ?? null };
   });
 }
 
@@ -190,6 +191,11 @@ sockets.on('connection', (socket, req) => {
       syncSamples.set(cameraId, samples.slice(-20));
       cameras.heartbeat(cameraId, sessionNow());
       tellOperators();
+    }
+
+    if (message.type === 'recording') {
+      heldMs.set(cameraId, message.heldMs);
+      cameras.heartbeat(cameraId, sessionNow());
     }
   });
 

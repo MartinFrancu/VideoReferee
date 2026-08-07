@@ -20,7 +20,9 @@
   #log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
          color: var(--faded); padding: 12px 16px; white-space: pre-wrap;
          line-height: 1.6; overflow-y: auto; }
-  #hint { padding: 22px 16px; color: var(--faded); font-size: 14px; line-height: 1.6; }
+  #preview { width: 100%; height: 58vh; object-fit: cover; background: #000; display: block; }
+  #held { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--faded); }
+  #hint { padding: 14px 16px; color: var(--faded); font-size: 13.5px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -28,10 +30,11 @@
     <span id="name">joining…</span>
     <span id="state"><span class="pip" id="pip"></span><span id="stateText">connecting</span></span>
   </div>
+  <video id="preview" autoplay playsinline muted></video>
   <div id="hint">
-    This phone is enrolled as a camera. Keep this page open and the screen awake.
+    Keep this page open. <span id="held"></span>
   </div>
   <div id="log"></div>
-  <script src="camera.js"></script>
+  <script type="module" src="camera.js"></script>
 </body>
 </html>

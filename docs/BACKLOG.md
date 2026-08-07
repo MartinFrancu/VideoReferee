@@ -81,6 +81,10 @@ batch 3, not automated. Needs a decoder, so it belongs at the integration level.
 still deliver its clip. The difference between a demo and something that survives
 a tournament.
 
+**Removing a camera.** Enrolments last for the session, so a camera added by
+mistake or a phone swapped out mid-tournament stays on the list forever. Noticed
+while walking the slice with a long-running hub.
+
 **Health beyond alive/dead.** Battery, thermal state, storage headroom, ring
 occupancy, upload backlog. At a real event, "is camera 3 about to die" has to be
 answerable at a glance.

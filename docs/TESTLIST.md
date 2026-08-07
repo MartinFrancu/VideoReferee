@@ -10,12 +10,6 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Stages refer to the road map. `Done` keeps running numbers; items here are
 unnumbered until they land, since they get reshaped on the way.
 
-### Stage 4 — the camera keeps rolling
-
-- a ring buffer drops the oldest chunk once it is past the window
-- the pinned prefix is never dropped, however long the recording runs
-- the ring reports the device time at which each chunk arrived
-
 ### Stage 5 — a recording's true media origin
 
 Promoted by what batch 5 measured: anchoring on `recorder.onstart` puts two
@@ -155,6 +149,19 @@ fixtures `pair-north.webm` / `pair-east.webm` / `pair.json`.
 > bar, and **0 ms between cameras**. The clips start 2.5 s apart on the shared
 > timeline and put the bookmark at 4542 ms and 2014 ms respectively, so the
 > agreement is the alignment working rather than similar inputs.
+
+### Stage 4 — the camera keeps rolling
+
+Module `web/camera/ring.js`, tested like everything else despite shipping to a
+phone without a build step.
+
+25. ✅ drops the oldest chunk once it falls outside the window
+26. ✅ never drops the pinned prefix, however long the recording runs
+27. ✅ reports where each retained chunk sits in the run and when it arrived
+
+> Test 25 failed first because the *test* was wrong, not the code: it expected
+> the pinned prefix to appear in the run as well. Prefix and run are separate by
+> design — the hub receives both and knows they are not contiguous.
 
 ### Stages 1–2 — the hub wakes, cameras enrol
 

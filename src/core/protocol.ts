@@ -17,7 +17,7 @@ export type CameraToHub =
   | { type: 'hello'; token: string }
   /** `deviceAt` is performance.now() on the camera — a raw reading, nothing more. */
   | { type: 'pong'; sentAt: number; deviceAt: number }
-  | { type: 'recording'; startedAtDeviceMs: number };
+  | { type: 'recording'; heldMs: number };
 
 /** Anything the hub says to the operator's screen. */
 export type HubToOperator =
@@ -29,6 +29,8 @@ export interface CameraView {
   readonly name: string;
   readonly live: boolean;
   readonly everJoined: boolean;
+  /** How much footage this camera is holding, in milliseconds. */
+  readonly heldMs: number | null;
   /** How far this camera's clock estimate could be wrong, once known. */
   readonly syncUncertaintyMs: number | null;
 }

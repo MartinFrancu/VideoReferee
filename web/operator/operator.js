@@ -28,7 +28,8 @@ function renderCameras(cameras) {
     } else if (camera.syncUncertaintyMs === null) {
       detail.textContent = 'live — measuring clock';
     } else {
-      detail.textContent = `live — clock ±${Math.round(camera.syncUncertaintyMs)}ms`;
+      const buffered = camera.heldMs === null ? 'no footage yet' : `${Math.round(camera.heldMs / 1000)}s buffered`;
+      detail.textContent = `${buffered} — clock ±${Math.round(camera.syncUncertaintyMs)}ms`;
     }
 
     card.append(name, detail);
