@@ -67,7 +67,8 @@ may beat showing a blank tile. **Needs use** — easier to judge by seeing it.
 
 **Clamp the review scrubber to what each clip actually holds.** The spike offered
 a fixed −5 s regardless of the clip's real span, which is why five seconds of
-history was never there.
+history was never there. Part of the review screen — see `docs/review-screen.md`
+for the full interaction design.
 
 **Pre-roll and post-roll as configuration.** Currently constants. 1.5 s of
 pre-roll is probably too short; 4–5 s is likelier to be what a referee wants,
