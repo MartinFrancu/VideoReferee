@@ -5,31 +5,39 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 
 ---
 
-## Now — M1, the alignment core
+## Now — the vertical slice
 
-Ordered so each test has a reason to exist given the ones before it. Roughly four
-batches.
+Stages refer to the road map. `Done` keeps running numbers; items here are
+unnumbered until they land, since they get reshaped on the way.
 
-### Batch 6 — finding a recording's true media origin
+### Stage 4 — the camera keeps rolling
 
-Promoted straight to `Now` by what batch 5 measured: anchoring on
-`recorder.onstart` puts two cameras 860 ms apart. A hub cannot read the origin
-out of pixels, so it needs to infer it.
+- a ring buffer drops the oldest chunk once it is past the window
+- the pinned prefix is never dropped, however long the recording runs
+- the ring reports the device time at which each chunk arrived
 
-The proposal, which keeps INV-2 intact — the camera reports only the device-clock
-time at which each chunk arrived, and the hub already parses the cluster
-timecodes inside those chunks. Every arrival is *later* than the media time it
-carries, by an encode-and-mux delay that is never negative, so the minimum of
-`arrivalDeviceMs - clusterMediaMs` over many chunks is the tightest available
+### Stage 5 — a recording's true media origin
+
+Promoted by what batch 5 measured: anchoring on `recorder.onstart` puts two
+cameras 860 ms apart. A hub cannot read the origin out of pixels, so it infers
+it — and the camera still reports only raw observations (INV-2).
+
+Every chunk arrives *later* than the media time it carries, by an
+encode-and-mux delay that is never negative. So the minimum of
+`arrivalDeviceMs - clusterMediaMs` across many chunks is the tightest available
 bound on the origin. Same shape as preferring the fastest round trip.
 
-20. estimates the media origin from a chunk arrival and the timecodes it carries
-21. prefers the arrival that lagged least, over many chunks
-22. reports how far the origin estimate could be wrong
-23. an origin estimated from arrivals lines two cameras up as well as the measured one
+- estimates the media origin from a chunk arrival and the timecodes it carries
+- prefers the arrival that lagged least, over many chunks
+- reports how far the origin estimate could be wrong
+- an origin estimated from arrivals lines two cameras up as well as the measured
+  one *(reuses the batch 5 fixtures; needs the generator to record arrival times)*
 
-> (23) reuses the batch 5 fixtures, so it needs the generator to also record
-> per-chunk arrival times.
+### Stage 6 — a bookmark reaches everyone
+
+- a bookmark reaches every connected camera, not just the one that tapped
+- a clip is indexed against its bookmark and its camera
+- a bookmark with some angles still in flight is renderable anyway *(INV-2)*
 
 ---
 
@@ -147,6 +155,20 @@ fixtures `pair-north.webm` / `pair-east.webm` / `pair.json`.
 > bar, and **0 ms between cameras**. The clips start 2.5 s apart on the shared
 > timeline and put the bookmark at 4542 ms and 2014 ms respectively, so the
 > agreement is the alignment working rather than similar inputs.
+
+### Stages 1–2 — the hub wakes, cameras enrol
+
+Modules `src/core/cameras.ts`, `src/core/protocol.ts`, `src/hub/`.
+
+20. ✅ a camera that has been invited is not yet live
+21. ✅ a camera goes live when it joins with the token it was given
+22. ✅ a join with an unknown token is refused
+23. ✅ a camera that has not been heard from recently is no longer live
+24. ✅ a camera that has gone quiet is distinguishable from one that never joined
+
+> The last one came out of walking the slice rather than from the list: a stale
+> camera and one whose QR was never scanned both read as "waiting to join", which
+> are different problems for whoever is running the table.
 
 ---
 
