@@ -81,18 +81,32 @@ export interface Cluster {
   readonly bodyOffset: number;
 }
 
-function readCluster(bytes: Uint8Array, start: number, end: number): Cluster {
-  // Layout: [cluster id][size][Timecode id][timecode size][timecode value][children...]
-  // The size is written as "unknown" by live muxers, so the cluster's extent comes
-  // from where the next one starts, never from the size field.
+/**
+ * Where a cluster's timecode value and children sit, relative to the buffer.
+ *
+ * Layout: [cluster id][size][Timecode id][timecode size][timecode value][children...]
+ * Live muxers write the size as "unknown", so a cluster's extent comes from where
+ * the next one starts and never from the size field.
+ */
+function clusterHeader(bytes: Uint8Array, start: number) {
   const size = readVint(bytes, start + CLUSTER_ID.length);
   const timecodeSizePos = start + CLUSTER_ID.length + (size?.length ?? 0) + 1;
   const timecodeSize = readVint(bytes, timecodeSizePos);
-  const valuePos = timecodeSizePos + (timecodeSize?.length ?? 0);
+  const timecodeValuePos = timecodeSizePos + (timecodeSize?.length ?? 0);
+  const timecodeValueLength = timecodeSize?.value ?? 0;
   return {
-    timeMs: readUint(bytes, valuePos, timecodeSize?.value ?? 0),
+    timecodeValuePos,
+    timecodeValueLength,
+    bodyOffset: timecodeValuePos + timecodeValueLength,
+  };
+}
+
+function readCluster(bytes: Uint8Array, start: number, end: number): Cluster {
+  const header = clusterHeader(bytes, start);
+  return {
+    timeMs: readUint(bytes, header.timecodeValuePos, header.timecodeValueLength),
     bytes: bytes.subarray(start, end),
-    bodyOffset: valuePos + (timecodeSize?.value ?? 0) - start,
+    bodyOffset: header.bodyOffset - start,
   };
 }
 
@@ -128,6 +142,85 @@ export function isVideoKeyframe(cluster: Cluster, videoTrack: number): boolean {
     pos = valuePos + size.value;
   }
   return false;
+}
+
+export interface CutRequest {
+  /** Bytes before the first cluster, from the recording's pinned prefix. */
+  readonly initSegment: Uint8Array;
+  readonly clusters: readonly Cluster[];
+  readonly videoTrack: number;
+  /** Requested window, in milliseconds of the camera's own recording time. */
+  readonly fromMs: number;
+  readonly toMs: number;
+}
+
+export interface Clip {
+  /** A standalone, playable WebM. */
+  readonly bytes: Uint8Array;
+  /**
+   * Media time of the clip's first frame, in the camera's own recording time.
+   * Rarely equals the requested start: a clip can only begin at a keyframe, so
+   * it reaches back to the preceding one and reports how far back that was.
+   */
+  readonly startMs: number;
+}
+
+/** Cut a standalone clip covering the requested window, or null if none is possible. */
+export function cutClip(request: CutRequest): Clip | null {
+  const { clusters, videoTrack, fromMs, initSegment } = request;
+
+  let firstIndex = -1;
+  for (let i = 0; i < clusters.length; i++) {
+    const cluster = clusters[i];
+    if (cluster === undefined) continue;
+    if (cluster.timeMs <= fromMs && isVideoKeyframe(cluster, videoTrack)) firstIndex = i;
+  }
+  const first = firstIndex === -1 ? undefined : clusters[firstIndex];
+  if (first === undefined) return null;
+
+  const selected: Cluster[] = [];
+  for (let i = firstIndex; i < clusters.length; i++) {
+    const cluster = clusters[i];
+    if (cluster === undefined || cluster.timeMs > request.toMs) break;
+    selected.push(cluster);
+  }
+
+  const startMs = first.timeMs;
+  return {
+    bytes: concatBytes([initSegment, ...selected.map((c) => rebaseCluster(c, startMs))]),
+    startMs,
+  };
+}
+
+/**
+ * A copy of the cluster with its timecode restated relative to `baseMs`.
+ *
+ * Cluster timecodes are absolute — milliseconds since the recording began — so a
+ * clip cut an hour in whose first cluster still says 3600000 is read as an hour
+ * of nothing followed by the footage. The rebased value is never larger than the
+ * original, so it fits the original field width: EBML unsigned integers may be
+ * zero-padded, and keeping the width means nothing else has to move.
+ */
+function rebaseCluster(cluster: Cluster, baseMs: number): Uint8Array {
+  const bytes = cluster.bytes.slice();
+  const { timecodeValuePos, timecodeValueLength } = clusterHeader(bytes, 0);
+
+  let value = cluster.timeMs - baseMs;
+  for (let i = timecodeValueLength - 1; i >= 0; i--) {
+    bytes[timecodeValuePos + i] = value & 0xff;
+    value = Math.floor(value / 256);
+  }
+  return bytes;
+}
+
+function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
+  const joined = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    joined.set(part, offset);
+    offset += part.length;
+  }
+  return joined;
 }
 
 /** A Block with no ReferenceBlock beside it refers to nothing: it is a keyframe. */

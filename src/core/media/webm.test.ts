@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, test } from 'vitest';
 
-import { isVideoKeyframe, readClusters, readInitSegment, readVideoTrackNumber } from './webm.js';
+import {
+  cutClip,
+  isVideoKeyframe,
+  readClusters,
+  readInitSegment,
+  readVideoTrackNumber,
+} from './webm.js';
 
 function fixture(name: string): Uint8Array {
   return new Uint8Array(readFileSync(fileURLToPath(new URL(`../../../fixtures/${name}`, import.meta.url))));
@@ -86,6 +92,67 @@ describe('finding what is decodable', () => {
     const cluster = clusterWithSimpleBlock({ track: 2, keyframe: true });
 
     expect(readClusters(cluster).map((c) => isVideoKeyframe(c, 1))).toEqual([false]);
+  });
+});
+
+describe('cutting a clip', () => {
+  // Keyframes sit at 0, 3357, 6722 and 10086 ms — see fixtures/README.md.
+  function cutFromFixture(window: { fromMs: number; toMs: number }) {
+    const recording = fixture('two-keyframe-gaps.webm');
+    return cutClip({
+      initSegment: readInitSegment(recording),
+      clusters: readClusters(recording),
+      videoTrack: 1,
+      ...window,
+    });
+  }
+
+  test('a cut clip begins with the init segment', () => {
+    const initSegment = readInitSegment(fixture('two-keyframe-gaps.webm'));
+
+    const clip = cutFromFixture({ fromMs: 5000, toMs: 7000 });
+
+    expect(clip?.bytes.subarray(0, initSegment.length)).toEqual(initSegment);
+  });
+
+  test('begins at the last keyframe at or before the requested start, and reports it', () => {
+    const clip = cutFromFixture({ fromMs: 5000, toMs: 7000 });
+
+    expect(clip?.startMs).toBe(3357);
+  });
+
+  test('rebases cluster timecodes so the clip starts at zero', () => {
+    const clip = cutFromFixture({ fromMs: 5000, toMs: 7000 });
+
+    const timecodes = readClusters(clip!.bytes).map((cluster) => cluster.timeMs);
+
+    // Source clusters 3357, 3606, 3905, 4206, 4514 — spacing preserved, origin moved.
+    expect(timecodes.slice(0, 5)).toEqual([0, 249, 548, 849, 1157]);
+  });
+
+  test('includes clusters up to the requested end and no further', () => {
+    const clip = cutFromFixture({ fromMs: 5000, toMs: 7000 });
+
+    const timecodes = readClusters(clip!.bytes).map((cluster) => cluster.timeMs);
+
+    // Source clusters 3357 through 6906; the next one at 7204 is outside the window.
+    expect(timecodes).toHaveLength(14);
+    expect(timecodes.at(-1)).toBe(6906 - 3357);
+  });
+
+  test('returns nothing when no keyframe precedes the requested window', () => {
+    const recording = fixture('two-keyframe-gaps.webm');
+
+    const clip = cutClip({
+      initSegment: readInitSegment(recording),
+      // A run starting at 546 ms, so the earliest keyframe available is 3357 ms.
+      clusters: readClusters(recording.subarray(20_000)),
+      videoTrack: 1,
+      fromMs: 1000,
+      toMs: 3000,
+    });
+
+    expect(clip).toBeNull();
   });
 });
 

@@ -10,26 +10,16 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Ordered so each test has a reason to exist given the ones before it. Roughly four
 batches.
 
-### Batch 3 — cutting
-
-9. a cut clip begins with the init segment
-10. a cut clip begins at the last keyframe at or before the requested start
-11. rebases the first cluster's timecode to zero
-12. preserves the spacing between rebased cluster timecodes
-13. includes clusters up to the requested end and no further
-14. reports the media time its first frame corresponds to
-15. returns nothing when the run contains no keyframe at or before the window
-
 ### Batch 4 — time, and the claim the product rests on
 
-16. estimates offset from one round trip as the midpoint
-17. prefers the sample with the lowest round-trip time
-18. reports offset quality from the spread of recent samples
-19. maps a device's media time to session time using its recording anchor
-20. **two recordings with different start anchors produce clips whose bookmark
+14. estimates offset from one round trip as the midpoint
+15. prefers the sample with the lowest round-trip time
+16. reports offset quality from the spread of recent samples
+17. maps a device's media time to session time using its recording anchor
+18. **two recordings with different start anchors produce clips whose bookmark
     offsets refer to the same instant**
 
-> (20) is the money test: decode each clip at its reported bookmark offset and
+> (18) is the money test: decode each clip at its reported bookmark offset and
 > compare the binary-clock value burned into the frame. Needs a fixture pair
 > recorded with staggered starts — generate with the `spike/test` harness.
 
@@ -69,6 +59,12 @@ Unordered. Promote into `Now` when it earns it.
 - a camera that goes quiet is marked stale without being removed
 - nothing breaks with zero cameras connected *(INV-5)*
 
+**Cut clips** — verified by hand in batch 3, not yet automated
+- a cut clip decodes with no missing-reference errors *(needs a decoder, so it
+  belongs at the integration level rather than in the unit suite)*
+- falling back to the first keyframe **inside** the window when none precedes it,
+  instead of returning nothing — "only show the overlap" may beat showing nothing
+
 **Hub integration** — fake cameras replaying fixtures, no browser
 - a bookmark fans out to every connected camera
 - clips arriving out of order are indexed correctly
@@ -97,6 +93,20 @@ Fixture `two-keyframe-gaps.webm`. Module `src/core/media/webm.ts`.
 > Items 7 and 8 of the original batch collapsed into test 6 for the recorded
 > fixture, which contains only `BlockGroup` video. Tests 7 and 8 use a crafted
 > cluster instead, for the `SimpleBlock` shape the fixture happens not to have.
+
+### Batch 3 — cutting
+
+9. ✅ a cut clip begins with the init segment
+10. ✅ begins at the last keyframe at or before the requested start, and reports it
+11. ✅ rebases cluster timecodes so the clip starts at zero
+12. ✅ includes clusters up to the requested end and no further
+13. ✅ returns nothing when no keyframe precedes the requested window
+
+> The original items "rebases the first cluster's timecode to zero" and
+> "preserves the spacing" became one test: asserting the whole rebased sequence
+> covers both, and they are one behaviour. "Reports the media time its first
+> frame corresponds to" merged into test 10 — the clip's start and its report of
+> that start are the same claim.
 
 ---
 
@@ -144,6 +154,18 @@ That is triangulation doing its job — an existing test forced the new code to 
 *correct*, not merely general — and it is the trap that would have silently made
 every clip start at the wrong place. Worth noting the difference from batch 1: the
 pressure appeared as soon as the code was genuinely new rather than ported.
+
+**Batch 3 — the unit suite cannot tell you the clip plays.** Every assertion in
+batch 3 is about structure: which clusters, what timecodes, what prefix. All
+thirteen tests would still pass if the rebased bytes produced something no player
+could open — which is exactly the failure the spike shipped for days.
+
+So it was checked out of band: both cut clips decode through ffmpeg with zero
+"Not all references are available" errors, and a frame decoded at a known media
+time shows the expected moment. That check is recorded under Later as an
+integration test, because it needs a decoder and does not belong in the unit
+suite. Until it exists, treat green here as "the structure is right", not "the
+clip plays".
 
 **Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
 that was the right way round: batch 1 left the extent out because nothing needed
