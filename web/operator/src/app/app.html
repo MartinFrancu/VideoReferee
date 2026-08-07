@@ -33,6 +33,13 @@
     />
   </section>
 
+  @if (reviewing(); as bookmark) {
+    <section data-testid="review">
+      <h2>Reviewing {{ bookmark.triggeredBy }}'s bookmark</h2>
+      <vr-review-stage [bookmark]="bookmark" [cameras]="hub.cameras()" />
+    </section>
+  }
+
   <section>
     <h2>Add a camera</h2>
     <form class="add" (submit)="addCamera(); $event.preventDefault()">

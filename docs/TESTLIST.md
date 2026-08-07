@@ -186,6 +186,20 @@ Module `src/core/bookmarks.ts`.
 > both. Measured `0 of 2 angles` becoming `2 angles`, with the bookmark landing at
 > +1.65 s and +1.62 s in the two clips — 30 ms apart, and both decode cleanly.
 
+### Stage 9 — the review screen
+
+Components `web/operator/src/app/review-stage.ts` and `review-tile.ts`. Covered by
+the walkthrough rather than unit tests: the behaviour is about what a browser
+does with several video elements, which a fake cannot tell us.
+
+Measured on two angles of one bookmark:
+
+- on opening, each sits at its own bookmark offset — 1.574 s and 1.573 s
+- dragging moves only the lead (0.77 s) and leaves the other at 1.573 s
+- releasing brings both to 0.770 s and 0.769 s
+- one frame forward advances both by 33 ms, still 1 ms apart
+- the scrubber's range is derived from the clips: −1574 ms to +1127 ms
+
 ---
 
 ## Notes from the loop
@@ -293,6 +307,21 @@ Two lessons. An assertion whose *failure output* satisfies it is worse than no
 assertion — prefer matching a shape that cannot appear while incomplete. And a
 walkthrough against a long-lived server is not repeatable: restart it, or the
 previous run's state decides the result.
+
+**Stage 9 — a fix that deadlocked on the thing it was fixing.** Clips cut from a
+live stream carry no Duration element, so `video.duration` is Infinity until the
+blob has been scanned — and the scrubber was briefly given a range of
+`-1916ms .. Infinityms`. The obvious fix, "do not report a span until the
+duration is finite", made it worse: nothing was reported at all, and the tiles
+never moved off frame zero.
+
+The reason is that **seeking is what makes Chrome scan the clip**. The original
+buggy code worked by accident because it seeked with a nonsense duration, which
+triggered the scan. Refusing to act until the duration was known removed the only
+thing that would ever reveal it.
+
+The fix is to ask for an impossible position (`currentTime = 1e6`) as soon as
+metadata arrives, let `durationchange` follow, and settle on the bookmark then.
 
 **Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
 that was the right way round: batch 1 left the extent out because nothing needed

@@ -1,15 +1,24 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { form, FormField, required, submit } from '@angular/forms/signals';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 
 import { BookmarkList } from './bookmark-list';
 import { CameraCard } from './camera-card';
+import { ReviewStage } from './review-stage';
 import { Hub, type NewCamera } from './hub';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BookmarkList, CameraCard, FormField],
+  imports: [BookmarkList, CameraCard, FormField, ReviewStage],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -25,6 +34,9 @@ export class App {
   });
 
   protected readonly selectedBookmark = signal<string | null>(null);
+  protected readonly reviewing = computed(() =>
+    this.hub.bookmarks().find((bookmark) => bookmark.id === this.selectedBookmark()) ?? null
+  );
   protected readonly invited = signal<NewCamera | null>(null);
   protected readonly qr = signal<SafeHtml | null>(null);
 
