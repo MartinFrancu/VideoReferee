@@ -4,16 +4,28 @@
 // clip starts, what a bookmark means — is computed in src/core, where it is
 // covered by tests. This file moves bytes and holds state.
 import { createServer } from 'node:https';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import QRCode from 'qrcode';
 import { WebSocketServer, WebSocket } from 'ws';
 
+import { cutClipForBookmark } from '../core/alignment.js';
+import { BookmarkLedger } from '../core/bookmarks.js';
 import { CameraRegistry } from '../core/cameras.js';
+import { readClusters, readInitSegment, readVideoTrackNumber } from '../core/media/webm.js';
+import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
-import { PING_INTERVAL_MS, type BoutPhase, type CameraToHub, type CameraView } from '../core/protocol.js';
+import {
+  PING_INTERVAL_MS,
+  POST_ROLL_MS,
+  PRE_ROLL_MS,
+  type BoutPhase,
+  type CameraToHub,
+  type CameraView,
+  type UploadHeader,
+} from '../core/protocol.js';
 import { localAddresses } from './network.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -22,6 +34,8 @@ const WEB = join(ROOT, 'web');
 /** The operator screen is an Angular app; the hub serves whatever `ng build` produced. */
 const OPERATOR_DIST = join(WEB, 'operator', 'dist', 'browser');
 const CERT_DIR = join(ROOT, 'certs');
+const CLIPS_DIR = join(ROOT, 'clips');
+mkdirSync(CLIPS_DIR, { recursive: true });
 
 if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
   console.error('No certificate yet. Run `npm run gen-cert` first.');
@@ -31,6 +45,7 @@ if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
 // ---------------------------------------------------------------- state ----
 
 const cameras = new CameraRegistry();
+const bookmarks = new BookmarkLedger();
 const syncSamples = new Map<string, SyncSample[]>();
 const heldMs = new Map<string, number>();
 const cameraSockets = new Map<string, WebSocket>();
@@ -48,12 +63,14 @@ function cameraViews(): CameraView[] {
 }
 
 function tellOperators(): void {
-  const message = JSON.stringify({ type: 'cameras', cameras: cameraViews() });
-  const phase = JSON.stringify({ type: 'boutPhase', phase: boutPhase });
+  const messages = [
+    JSON.stringify({ type: 'cameras', cameras: cameraViews() }),
+    JSON.stringify({ type: 'boutPhase', phase: boutPhase }),
+    JSON.stringify({ type: 'bookmarks', bookmarks: bookmarks.list() }),
+  ];
   for (const socket of operatorSockets) {
     if (socket.readyState !== WebSocket.OPEN) continue;
-    socket.send(message);
-    socket.send(phase);
+    for (const message of messages) socket.send(message);
   }
 }
 
@@ -62,6 +79,74 @@ function tellCameras(message: unknown): void {
   for (const socket of cameraSockets.values()) {
     if (socket.readyState === WebSocket.OPEN) socket.send(payload);
   }
+}
+
+/**
+ * One tap, every camera. The hub stamps the instant on its own clock and asks
+ * everyone who is filming for their footage — not only whoever noticed.
+ */
+function createBookmark(triggeredBy: string): void {
+  const filming = cameras.list(sessionNow()).filter((camera) => camera.live);
+  const bookmark = bookmarks.create({
+    sessionMs: sessionNow(),
+    triggeredBy: cameras.list(sessionNow()).find((c) => c.id === triggeredBy)?.name ?? triggeredBy,
+    cameraIds: filming.map((camera) => camera.id),
+  });
+
+  tellCameras({ type: 'bookmark', bookmarkId: bookmark.id, sessionMs: bookmark.sessionMs });
+  tellOperators();
+  console.log(`bookmark ${bookmark.id.slice(0, 8)} — asking ${filming.length} camera(s)`);
+}
+
+/**
+ * A camera's upload. It sent opaque bytes and its own clock readings; everything
+ * that turns those into an aligned clip happens here, on the hub (INV-3).
+ */
+function ingestClip(body: Buffer): void {
+  const headerLength = body.readUInt32BE(0);
+  const header = JSON.parse(body.subarray(4, 4 + headerLength).toString()) as UploadHeader;
+  const prefixAt = 4 + headerLength;
+  const prefix = new Uint8Array(body.subarray(prefixAt, prefixAt + header.prefixLength));
+  const run = new Uint8Array(body.subarray(prefixAt + header.prefixLength));
+
+  const bookmark = bookmarks.list().find((candidate) => candidate.id === header.bookmarkId);
+  if (!bookmark) throw new Error('unknown bookmark');
+
+  // Where this camera's own timeline sits against the hub's.
+  const clock = estimateClock(syncSamples.get(header.cameraId) ?? []);
+  if (!clock) throw new Error('no clock estimate for that camera yet');
+
+  const initSegment = readInitSegment(prefix);
+  const clusters = readClusters(run);
+  const origin = estimateMediaOrigin(originSamples({ clusters, arrivals: header.arrivals }));
+  if (!origin) throw new Error('cannot tell when that recording started');
+
+  const clip = cutClipForBookmark({
+    initSegment,
+    clusters,
+    videoTrack: readVideoTrackNumber(prefix) ?? 1,
+    timeline: { clock, recordingStartedAt: origin.originDeviceMs },
+    bookmarkSessionMs: bookmark.sessionMs,
+    preRollMs: PRE_ROLL_MS,
+    postRollMs: POST_ROLL_MS,
+  });
+  if (!clip) throw new Error('no footage covering that moment');
+
+  const filename = `${header.bookmarkId}_${header.cameraId}.webm`;
+  writeFileSync(join(CLIPS_DIR, filename), clip.bytes);
+  bookmarks.recordClip(header.bookmarkId, {
+    cameraId: header.cameraId,
+    url: `/clips/${filename}`,
+    startSessionMs: clip.startSessionMs,
+    bookmarkOffsetMs: clip.bookmarkOffsetMs,
+  });
+  tellOperators();
+
+  console.log(
+    `clip from ${header.cameraId.slice(0, 8)}: ${(clip.bytes.length / 1024).toFixed(0)}KB, ` +
+      `bookmark at +${(clip.bookmarkOffsetMs / 1000).toFixed(2)}s, ` +
+      `origin ±${Math.round(origin.uncertaintyMs)}ms, clock ±${Math.round(clock.uncertaintyMs)}ms`
+  );
 }
 
 // ----------------------------------------------------------------- http ----
@@ -150,6 +235,32 @@ const server = createServer(
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/clips') {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      try {
+        ingestClip(Buffer.concat(chunks));
+        res.writeHead(200).end('ok');
+      } catch (error) {
+        // A camera that cannot answer a bookmark is normal — it may have joined
+        // moments ago, or the moment may have rolled out of its ring.
+        const reason = error instanceof Error ? error.message : 'upload failed';
+        console.log(`clip rejected: ${reason}`);
+        res.writeHead(422, { 'Content-Type': 'text/plain' }).end(reason);
+      }
+      return;
+    }
+
+    if (url.pathname.startsWith('/clips/')) {
+      const file = join(CLIPS_DIR, normalize(url.pathname.slice('/clips/'.length)).replace(/^(\.\.[/\\])+/, ''));
+      if (!file.startsWith(CLIPS_DIR) || !existsSync(file)) {
+        res.writeHead(404).end('not found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'video/webm' }).end(readFileSync(file));
+      return;
+    }
+
     if (url.pathname === '/favicon.ico') {
       res.writeHead(204).end();
       return;
@@ -171,6 +282,7 @@ sockets.on('connection', (socket, req) => {
     socket.on('close', () => operatorSockets.delete(socket));
     socket.send(JSON.stringify({ type: 'cameras', cameras: cameraViews() }));
     socket.send(JSON.stringify({ type: 'boutPhase', phase: boutPhase }));
+    socket.send(JSON.stringify({ type: 'bookmarks', bookmarks: bookmarks.list() }));
     return;
   }
 
@@ -214,6 +326,10 @@ sockets.on('connection', (socket, req) => {
     if (message.type === 'recording') {
       heldMs.set(cameraId, message.heldMs);
       cameras.heartbeat(cameraId, sessionNow());
+    }
+
+    if (message.type === 'bookmark') {
+      createBookmark(cameraId);
     }
   });
 

@@ -7,6 +7,12 @@
 import { ChunkRing } from './ring.js';
 
 const CHUNK_MS = 250;
+/**
+ * A bookmark asks for footage from after the moment too, and the recorder has
+ * not produced it yet. Wait for the post-roll plus a chunk, so the ring covers
+ * the whole window before it is sent.
+ */
+const POST_ROLL_WAIT_MS = 1500;
 const STATUS_INTERVAL_MS = 1000;
 
 const nameEl = document.getElementById('name');
@@ -14,11 +20,14 @@ const pipEl = document.getElementById('pip');
 const stateTextEl = document.getElementById('stateText');
 const logEl = document.getElementById('log');
 const previewEl = document.getElementById('preview');
+const bookmarkBtn = document.getElementById('bookmarkBtn');
 const heldEl = document.getElementById('held');
 
 const token = new URLSearchParams(location.search).get('t');
 const ring = new ChunkRing();
 let socket = null;
+/** Assigned by the hub when we join; the upload has no socket to be traced to. */
+let cameraId = null;
 
 function log(message) {
   const line = `${new Date().toLocaleTimeString()}  ${message}`;
@@ -33,6 +42,12 @@ function setState(text, live) {
 function send(message) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
 }
+
+bookmarkBtn.addEventListener('click', () => {
+  send({ type: 'bookmark' });
+  bookmarkBtn.classList.add('tapped');
+  setTimeout(() => bookmarkBtn.classList.remove('tapped'), 400);
+});
 
 // ------------------------------------------------------------- recording ----
 
@@ -90,6 +105,41 @@ async function startRecording() {
   }, STATUS_INTERVAL_MS);
 }
 
+// -------------------------------------------------------------- bookmark ----
+
+/**
+ * Hand the hub everything we are holding, and let it work out what any of it
+ * means. We send the pinned prefix, the ring, and when each stretch of the ring
+ * arrived on our own clock — no timecodes, no offsets, no windows (INV-2).
+ */
+async function uploadFor(bookmarkId) {
+  const { prefix, run, arrivals } = ring.snapshot();
+  if (run.length === 0) {
+    log('nothing buffered yet, cannot answer that bookmark');
+    return;
+  }
+
+  const header = new TextEncoder().encode(
+    JSON.stringify({ bookmarkId, cameraId, prefixLength: prefix.length, runLength: run.length, arrivals })
+  );
+  const body = new Uint8Array(4 + header.length + prefix.length + run.length);
+  new DataView(body.buffer).setUint32(0, header.length);
+  body.set(header, 4);
+  body.set(prefix, 4 + header.length);
+  body.set(run, 4 + header.length + prefix.length);
+
+  try {
+    const response = await fetch('/api/clips', { method: 'POST', body });
+    log(
+      response.ok
+        ? `sent ${(body.length / 1024 / 1024).toFixed(1)}MB for review`
+        : `hub refused the upload: ${response.status}`
+    );
+  } catch (error) {
+    log(`could not reach the hub: ${error.message}`);
+  }
+}
+
 // ------------------------------------------------------------ connection ----
 
 function connect() {
@@ -109,6 +159,7 @@ function connect() {
     const message = JSON.parse(event.data);
 
     if (message.type === 'welcome') {
+      cameraId = message.cameraId;
       nameEl.textContent = message.name;
       log(`joined as "${message.name}"`);
       startRecording().catch((error) => {
@@ -132,6 +183,13 @@ function connect() {
 
     if (message.type === 'boutPhase') {
       log(`bout is ${message.phase}`);
+      return;
+    }
+
+    if (message.type === 'bookmark') {
+      log('bookmark — sending what I have');
+      // Wait for the post-roll to actually be recorded before handing it over.
+      setTimeout(() => uploadFor(message.bookmarkId), POST_ROLL_WAIT_MS);
     }
   });
 }

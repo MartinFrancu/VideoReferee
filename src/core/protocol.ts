@@ -4,25 +4,31 @@
 // frame of reference — or a raw reading of a camera's own monotonic clock.
 // Cameras never send a derived value such as an offset (INV-2).
 
+import type { Bookmark } from './bookmarks.js';
+
 /** Anything the hub says to a camera. */
 export type HubToCamera =
   | { type: 'welcome'; cameraId: string; name: string }
   | { type: 'rejected'; reason: string }
   /** Sync probe. `sentAt` is session time; the camera echoes it back untouched. */
   | { type: 'ping'; sentAt: number }
-  | { type: 'boutPhase'; phase: BoutPhase };
+  | { type: 'boutPhase'; phase: BoutPhase }
+  /** Every camera gets this, not only the one that tapped. */
+  | { type: 'bookmark'; bookmarkId: string; sessionMs: number };
 
 /** Anything a camera says to the hub. */
 export type CameraToHub =
   | { type: 'hello'; token: string }
   /** `deviceAt` is performance.now() on the camera — a raw reading, nothing more. */
   | { type: 'pong'; sentAt: number; deviceAt: number }
-  | { type: 'recording'; heldMs: number };
+  | { type: 'recording'; heldMs: number }
+  | { type: 'bookmark' };
 
 /** Anything the hub says to the operator's screen. */
 export type HubToOperator =
   | { type: 'cameras'; cameras: CameraView[] }
-  | { type: 'boutPhase'; phase: BoutPhase };
+  | { type: 'boutPhase'; phase: BoutPhase }
+  | { type: 'bookmarks'; bookmarks: Bookmark[] };
 
 export interface CameraView {
   readonly id: string;
@@ -38,3 +44,23 @@ export interface CameraView {
 export type BoutPhase = 'idle' | 'recording' | 'paused';
 
 export const PING_INTERVAL_MS = 1000;
+
+/** How much footage either side of a bookmark a referee gets to look at. */
+export const PRE_ROLL_MS = 1500;
+export const POST_ROLL_MS = 1000;
+
+/**
+ * A camera's upload: a small JSON header, then the pinned prefix, then the ring.
+ *
+ * Multipart would need a parser on the hub for no benefit — the two byte runs
+ * are opaque and the header is ours. Everything before the bytes is described
+ * here so both sides agree without a schema library.
+ */
+export interface UploadHeader {
+  readonly bookmarkId: string;
+  readonly cameraId: string;
+  readonly prefixLength: number;
+  readonly runLength: number;
+  /** Where each stretch of the run came from, on the camera's own clock. */
+  readonly arrivals: readonly { offset: number; length: number; arrivedAtDeviceMs: number }[];
+}

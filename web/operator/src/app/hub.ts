@@ -14,6 +14,22 @@ export interface Camera {
 
 export type BoutPhase = 'idle' | 'recording' | 'paused';
 
+/** Mirrors Angle and Bookmark in src/core/bookmarks.ts. */
+export interface Angle {
+  cameraId: string;
+  status: 'pending' | 'received';
+  url?: string;
+  startSessionMs?: number;
+  bookmarkOffsetMs?: number;
+}
+
+export interface Bookmark {
+  id: string;
+  sessionMs: number;
+  triggeredBy: string;
+  angles: Angle[];
+}
+
 export interface NewCamera {
   id: string;
   name: string;
@@ -35,6 +51,7 @@ const RECONNECT_DELAY_MS = 1500;
 export class Hub {
   readonly cameras = signal<Camera[]>([]);
   readonly phase = signal<BoutPhase>('idle');
+  readonly bookmarks = signal<Bookmark[]>([]);
   readonly connected = signal(false);
 
   readonly #http = inject(HttpClient);
@@ -55,6 +72,7 @@ export class Hub {
       const message = JSON.parse(event.data);
       if (message.type === 'cameras') this.cameras.set(message.cameras);
       if (message.type === 'boutPhase') this.phase.set(message.phase);
+      if (message.type === 'bookmarks') this.bookmarks.set(message.bookmarks);
     });
   }
 

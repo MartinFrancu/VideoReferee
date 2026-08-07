@@ -10,12 +10,6 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Stages refer to the road map. `Done` keeps running numbers; items here are
 unnumbered until they land, since they get reshaped on the way.
 
-### Stage 6 — a bookmark reaches everyone
-
-- a bookmark reaches every connected camera, not just the one that tapped
-- a clip is indexed against its bookmark and its camera
-- a bookmark with some angles still in flight is renderable anyway *(INV-2)*
-
 ---
 
 ## Later
@@ -179,6 +173,19 @@ Modules `src/core/cameras.ts`, `src/core/protocol.ts`, `src/hub/`.
 > camera and one whose QR was never scanned both read as "waiting to join", which
 > are different problems for whoever is running the table.
 
+### Stage 6 — a bookmark reaches everyone
+
+Module `src/core/bookmarks.ts`.
+
+36. ✅ a new bookmark expects a clip from every camera that was filming
+37. ✅ records a clip against the camera that sent it, leaving the others pending
+38. ✅ ignores a clip for a bookmark it has never heard of
+
+> The fan-out itself and the cut are covered by the walkthrough rather than by
+> unit tests: one tap on one phone, both cameras upload, the hub cuts and indexes
+> both. Measured `0 of 2 angles` becoming `2 angles`, with the bookmark landing at
+> +1.65 s and +1.62 s in the two clips — 30 ms apart, and both decode cleanly.
+
 ---
 
 ## Notes from the loop
@@ -268,6 +275,24 @@ surfaced while writing the generator, not while writing the assertion. And a
 tolerance should be set from the measurement, not guessed beforehand: the initial
 bounds of 100 ms and 150 ms would have passed with the 860 ms bug present had the
 anchor been slightly better, because they were picked before anything was known.
+
+**Stage 6 — the check script lied twice, and cost more than the feature.**
+Two separate faults, both mine, both in the walkthrough rather than the app.
+
+First, the completion check was `text.includes('2 angles')` — and the failure
+string `"0 of 2 angles"` contains it. So the wait resolved instantly, the script
+raced on, and the browser closed before the upload's timer fired. The evidence
+then said "no upload ever happened", which sent me looking at the camera.
+
+Second, the runs that appeared to *work* only did so by accident: a stale
+bookmark from a previous run made a different check stall for thirty seconds,
+which happened to give the upload time to finish. So the symptom alternated
+between runs and looked like a race in the app.
+
+Two lessons. An assertion whose *failure output* satisfies it is worse than no
+assertion — prefer matching a shape that cannot appear while incomplete. And a
+walkthrough against a long-lived server is not repeatable: restart it, or the
+previous run's state decides the result.
 
 **Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
 that was the right way round: batch 1 left the extent out because nothing needed

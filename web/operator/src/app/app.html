@@ -24,6 +24,16 @@
   </section>
 
   <section>
+    <h2>Bookmarks</h2>
+    <vr-bookmark-list
+      [bookmarks]="hub.bookmarks()"
+      [cameras]="hub.cameras()"
+      [selected]="selectedBookmark()"
+      (chosen)="selectedBookmark.set($event)"
+    />
+  </section>
+
+  <section>
     <h2>Add a camera</h2>
     <form class="add" (submit)="addCamera(); $event.preventDefault()">
       <input
