@@ -10,18 +10,16 @@ Working artifact for the TDD loop — see `.claude/skills/tdd/SKILL.md`.
 Ordered so each test has a reason to exist given the ones before it. Roughly four
 batches.
 
-### Batch 4 — time, and the claim the product rests on
+### Batch 5 — the claim the product rests on
 
-14. estimates offset from one round trip as the midpoint
-15. prefers the sample with the lowest round-trip time
-16. reports offset quality from the spread of recent samples
-17. maps a device's media time to session time using its recording anchor
-18. **two recordings with different start anchors produce clips whose bookmark
+19. **two recordings with different start anchors produce clips whose bookmark
     offsets refer to the same instant**
 
-> (18) is the money test: decode each clip at its reported bookmark offset and
-> compare the binary-clock value burned into the frame. Needs a fixture pair
-> recorded with staggered starts — generate with the `spike/test` harness.
+> The money test: decode each clip at its reported bookmark offset and compare
+> the binary-clock value burned into the frame. Needs a fixture pair recorded
+> with staggered starts, and a decoder — so it lands at the integration level,
+> not in the unit suite. Extend `spike/test` to dump two full recordings plus
+> each camera's start anchor.
 
 ---
 
@@ -63,7 +61,10 @@ Unordered. Promote into `Now` when it earns it.
 - a cut clip decodes with no missing-reference errors *(needs a decoder, so it
   belongs at the integration level rather than in the unit suite)*
 - falling back to the first keyframe **inside** the window when none precedes it,
-  instead of returning nothing — "only show the overlap" may beat showing nothing
+  instead of returning nothing — "only show the overlap" may beat showing nothing.
+  *Deferred until the tool can be used for real: the question is whether a short
+  clip beats a blank tile, and that is easier to answer by seeing it than by
+  reasoning about it.*
 
 **Hub integration** — fake cameras replaying fixtures, no browser
 - a bookmark fans out to every connected camera
@@ -107,6 +108,22 @@ Fixture `two-keyframe-gaps.webm`. Module `src/core/media/webm.ts`.
 > covers both, and they are one behaviour. "Reports the media time its first
 > frame corresponds to" merged into test 10 — the clip's start and its report of
 > that start are the same claim.
+
+### Batch 4 — reading a camera's clock
+
+Modules `src/core/timeline/clock.ts` and `src/core/timeline/session-time.ts`.
+
+14. ✅ takes the offset from a round trip as the midpoint between send and receive
+15. ✅ prefers the fastest round trip when several are available
+16. ✅ reports how far the estimate could be wrong, as half the round trip it used
+17. ✅ converts a bookmark's session time into the camera's own media time
+18. ✅ converts a clip's media start back into session time
+
+> Item 16 was listed as "reports offset quality from the spread of recent
+> samples" and became something else. Spread measures jitter; what the referee
+> needs is a bound on how wrong the alignment could be, and half the round trip
+> is exactly that bound. Item 17 became two tests, one per direction — both are
+> needed by the same flow and they are separate behaviours.
 
 ---
 
@@ -166,6 +183,21 @@ time shows the expected moment. That check is recorded under Later as an
 integration test, because it needs a decoder and does not belong in the unit
 suite. Until it exists, treat green here as "the structure is right", not "the
 clip plays".
+
+**Batch 4 — a test can pass for the wrong reason if the data lets it.** Test 15
+first listed its samples fastest-last, which made "prefer the fastest" and "take
+the most recent" indistinguishable — a plausible wrong implementation would have
+passed. Moving the fastest sample into the middle fixes it: the mutant now fails
+with `expected 100 to be -480`.
+
+Worth generalising, since it is the second time this has come up: when a test
+picks one item out of several, arrange the data so that position and property
+disagree. Otherwise the test pins neither.
+
+**Not a gap: the two mapping tests only pin a sum.** `toMediaMs` and
+`toSessionMs` use `offsetMs` and `recordingStartedAt` only as their total, so no
+test can distinguish a mis-split between them. That is not a hole in the tests —
+it is the model. The pair never appears separately.
 
 **Design note.** Batch 2 forced `Cluster` to grow `bytes` and `bodyOffset`, and
 that was the right way round: batch 1 left the extent out because nothing needed
