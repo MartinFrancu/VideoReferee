@@ -1,52 +1,68 @@
 // The numbers worth changing without editing code.
 //
-// These were constants scattered across the hub, the camera page and the
-// operator screen, three of them duplicated by hand. Gathering them here means
-// one place to change a value and one place to check what a running hub is
-// actually using — the phone and the operator screen both read this over the
-// wire rather than carrying their own copy.
+// Grouped by what you are thinking about when you change one: what a bookmark
+// captures, what a phone holds, how the review screen moves, and how the hub
+// and the phones keep in touch. A flat list gave no clue which setting belonged
+// to which part of the system.
 //
 // Read from `config.json` at startup. Nothing in here can stop the hub
 // starting: a setting it dislikes is reported and replaced by its default,
 // because a tournament is a bad time to debug a config file.
 
-export interface Config {
-  /** How much footage before a bookmarked instant a referee gets to see. */
-  readonly preRollMs: number;
-  /** …and after it. */
-  readonly postRollMs: number;
-  /** How long a phone waits after a bookmark before uploading, so the post-roll exists. */
-  readonly postRollWaitMs: number;
-  /** Footage a camera must hold before it is treated as ready to bookmark. */
-  readonly warmUpMs: number;
-  /** How much footage a phone keeps in its rolling buffer. */
-  readonly ringWindowMs: number;
-  /** One frame, for stepping. Clips are not frame-rate tagged, so this is told, not measured. */
-  readonly frameMs: number;
-  /** While a frame button is held down, step again this often. */
-  readonly holdRepeatMs: number;
-  /** How long a frame button must be held before it starts repeating. */
-  readonly holdDelayMs: number;
-  /** How often the hub pings each camera. Doubles as the heartbeat. */
-  readonly pingIntervalMs: number;
-  /** Silence for longer than this and a camera is no longer believed to be filming. */
-  readonly staleAfterMs: number;
-}
+/** The defaults, and the shape. Sections and their settings are defined once, here. */
+const SECTION_DEFAULTS = {
+  /** What a bookmark captures. */
+  bookmark: {
+    /** How much footage before the bookmarked instant a clip carries. */
+    preRollMs: 1500,
+    /** …and after it. */
+    postRollMs: 1000,
+    /** How long a phone waits before uploading, so the post-roll has been recorded. */
+    postRollWaitMs: 1500,
+  },
+  /** What a phone does while filming. */
+  camera: {
+    /** How much footage a phone keeps in its rolling buffer. */
+    ringWindowMs: 25_000,
+    /** Footage a camera must hold before it is treated as ready to bookmark. */
+    warmUpMs: 20_000,
+  },
+  /** How the review screen moves through a clip. */
+  review: {
+    /** One frame, for stepping. Clips are not frame-rate tagged, so this is told, not measured. */
+    frameMs: 33,
+    /** While a frame button is held down, step again this often. */
+    holdRepeatMs: 200,
+    /** How long a frame button must be held before it starts repeating. */
+    holdDelayMs: 400,
+  },
+  /** How the hub and the phones keep in touch. */
+  network: {
+    /** How often the hub pings each camera. Doubles as the heartbeat. */
+    pingIntervalMs: 1000,
+    /** Silence for longer than this and a camera is no longer believed to be filming. */
+    staleAfterMs: 3000,
+  },
+} as const;
 
-export const DEFAULT_CONFIG: Config = {
-  preRollMs: 1500,
-  postRollMs: 1000,
-  postRollWaitMs: 1500,
-  warmUpMs: 20_000,
-  ringWindowMs: 25_000,
-  frameMs: 33,
-  holdRepeatMs: 200,
-  holdDelayMs: 400,
-  pingIntervalMs: 1000,
-  staleAfterMs: 3000,
+export type Config = {
+  readonly [S in keyof typeof SECTION_DEFAULTS]: {
+    readonly [K in keyof (typeof SECTION_DEFAULTS)[S]]: number;
+  };
 };
 
-const SETTINGS = Object.keys(DEFAULT_CONFIG) as (keyof Config)[];
+export const DEFAULT_CONFIG: Config = SECTION_DEFAULTS;
+
+type SectionName = keyof typeof SECTION_DEFAULTS;
+
+const SECTION_NAMES = Object.keys(SECTION_DEFAULTS) as SectionName[];
+
+/** Which section each setting belongs to, so a misplaced one can be pointed home. */
+const HOME_SECTION = new Map<string, SectionName>(
+  SECTION_NAMES.flatMap((section) =>
+    Object.keys(SECTION_DEFAULTS[section]).map((setting) => [setting, section] as const)
+  )
+);
 
 /**
  * How far below the ring window a warm-up target has to sit.
@@ -62,67 +78,121 @@ export interface ConfigResult {
   readonly problems: readonly string[];
 }
 
+type Draft = Record<SectionName, Record<string, number>>;
+
+function blankDraft(): Draft {
+  return Object.fromEntries(
+    SECTION_NAMES.map((section) => [section, { ...SECTION_DEFAULTS[section] }])
+  ) as unknown as Draft;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /** Read a config file's contents. Never throws; complains instead. */
 export function readConfig(input: unknown): ConfigResult {
   const problems: string[] = [];
-  const values = { ...DEFAULT_CONFIG } as Record<keyof Config, number>;
+  const draft = blankDraft();
+
+  /** Put one value in its place, or say why it stayed as it was. */
+  function apply(section: SectionName, setting: string, value: unknown): void {
+    const home = HOME_SECTION.get(setting);
+    if (home === undefined) {
+      problems.push(
+        `"${section}.${setting}" is not a setting — ignored. ` +
+          `${section} takes: ${Object.keys(SECTION_DEFAULTS[section]).join(', ')}.`
+      );
+      return;
+    }
+    if (home !== section) {
+      problems.push(`"${setting}" belongs in "${home}", not "${section}" — ignored where it is.`);
+      return;
+    }
+    // `Number.isFinite` already rejects a string; the `typeof` test is what
+    // narrows `unknown` to `number` for the assignment, and removing it does
+    // not compile.
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+      problems.push(
+        `${section}.${setting} must be a number greater than zero, not ${JSON.stringify(value)} — ` +
+          `using ${SECTION_DEFAULTS[section][setting as never]}.`
+      );
+      return;
+    }
+    draft[section][setting] = value;
+  }
 
   // `undefined` is "there is no file", which is normal. Anything else came out
   // of a file someone wrote, so a shape we cannot use is worth saying aloud.
   if (input !== undefined) {
-    if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    if (!isRecord(input)) {
       problems.push('config.json is not a set of settings — using defaults throughout.');
     } else {
-      const given = input as Record<string, unknown>;
+      let sawFlat = false;
 
-      for (const key of Object.keys(given)) {
-        if (!SETTINGS.includes(key as keyof Config)) {
-          problems.push(`"${key}" is not a setting — ignored. Expected one of: ${SETTINGS.join(', ')}.`);
-        }
-      }
-
-      for (const key of SETTINGS) {
-        if (!(key in given)) continue;
-        const value = given[key];
-        // `Number.isFinite` already rejects a string, so the `typeof` test looks
-        // redundant — it is here to narrow `unknown` to `number` for the
-        // assignment below, and removing it does not compile.
-        if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-          problems.push(
-            `${key} must be a number greater than zero, not ${JSON.stringify(value)} — using ${DEFAULT_CONFIG[key]}.`
-          );
+      for (const [key, value] of Object.entries(input)) {
+        if (SECTION_NAMES.includes(key as SectionName)) {
+          const section = key as SectionName;
+          if (!isRecord(value)) {
+            problems.push(`"${section}" should be a group of settings, not ${JSON.stringify(value)} — ignored.`);
+            continue;
+          }
+          for (const [setting, given] of Object.entries(value)) apply(section, setting, given);
           continue;
         }
-        values[key] = value;
+
+        // Settings used to sit at the top level. Keep reading those rather than
+        // let an edited file silently revert to defaults.
+        const home = HOME_SECTION.get(key);
+        if (home !== undefined) {
+          sawFlat = true;
+          apply(home, key, value);
+          continue;
+        }
+
+        problems.push(
+          `"${key}" is not a section — ignored. Expected one of: ${SECTION_NAMES.join(', ')}.`
+        );
+      }
+
+      if (sawFlat) {
+        problems.push(
+          `config.json uses the older flat layout. It still works, but settings are now grouped ` +
+            `into ${SECTION_NAMES.join(', ')} — see docs/config.md.`
+        );
       }
     }
   }
 
+  const { bookmark, camera } = draft;
+
   // A warm-up the ring can never reach leaves every camera stuck at "getting
   // ready" with BOOKMARK disabled, which looks like a broken tool rather than a
   // bad number. Pull it inside the window instead of obeying it.
-  const reachable = values.ringWindowMs - WARM_UP_HEADROOM_MS;
-  if (values.warmUpMs > reachable) {
+  const reachable = camera['ringWindowMs']! - WARM_UP_HEADROOM_MS;
+  if (camera['warmUpMs']! > reachable) {
     problems.push(
-      `warmUpMs ${values.warmUpMs} is more than a ring of ${values.ringWindowMs} can hold — using ${reachable}.`
+      `camera.warmUpMs ${camera['warmUpMs']} is more than a ring of ${camera['ringWindowMs']} can hold — using ${reachable}.`
     );
-    values.warmUpMs = reachable;
+    camera['warmUpMs'] = reachable;
   }
 
   // These two only make clips quietly short, so say so and let them stand.
-  if (values.preRollMs + values.postRollMs > values.ringWindowMs) {
+  const roll = bookmark['preRollMs']! + bookmark['postRollMs']!;
+  if (roll > camera['ringWindowMs']!) {
     problems.push(
-      `preRollMs + postRollMs (${values.preRollMs + values.postRollMs}) is more than the ring holds ` +
-        `(${values.ringWindowMs}), so clips will be cut short.`
+      `bookmark.preRollMs + bookmark.postRollMs (${roll}) is more than the ring holds ` +
+        `(camera.ringWindowMs ${camera['ringWindowMs']}), so clips will be cut short.`
     );
   }
 
-  if (values.postRollWaitMs < values.postRollMs) {
+  if (bookmark['postRollWaitMs']! < bookmark['postRollMs']!) {
     problems.push(
-      `postRollWaitMs (${values.postRollWaitMs}) is less than postRollMs (${values.postRollMs}), ` +
-        `so a phone will upload before it has recorded the footage after the bookmark.`
+      `bookmark.postRollWaitMs (${bookmark['postRollWaitMs']}) is less than ` +
+        `bookmark.postRollMs (${bookmark['postRollMs']}), so a phone will upload before it has ` +
+        `recorded the footage after the bookmark.`
     );
   }
 
-  return { config: values as Config, problems };
+  return { config: draft as Config, problems };
 }

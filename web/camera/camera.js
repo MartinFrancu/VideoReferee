@@ -13,7 +13,10 @@ const STATUS_INTERVAL_MS = 1000;
  * Settings come from the hub, so there is one place to change them and no copy
  * here to drift. These are only the fallbacks for a hub too old to be asked.
  */
-let config = { postRollWaitMs: 1500, warmUpMs: 20_000, ringWindowMs: 25_000 };
+let config = {
+  bookmark: { postRollWaitMs: 1500 },
+  camera: { warmUpMs: 20_000, ringWindowMs: 25_000 },
+};
 
 const nameEl = document.getElementById('name');
 const pipEl = document.getElementById('pip');
@@ -126,11 +129,11 @@ let ready = false;
 function showWarmUp(heldMs) {
   if (ready) return;
 
-  const fraction = Math.min(1, heldMs / config.warmUpMs);
+  const fraction = Math.min(1, heldMs / config.camera.warmUpMs);
   warmupFillEl.style.width = `${Math.round(fraction * 100)}%`;
 
-  if (heldMs < config.warmUpMs) {
-    const remaining = Math.ceil((config.warmUpMs - heldMs) / 1000);
+  if (heldMs < config.camera.warmUpMs) {
+    const remaining = Math.ceil((config.camera.warmUpMs - heldMs) / 1000);
     warmupTextEl.textContent = `ready in ${remaining}s`;
     return;
   }
@@ -226,7 +229,7 @@ function connect() {
     if (message.type === 'bookmark') {
       log('bookmark — sending what I have');
       // Wait for the post-roll to actually be recorded before handing it over.
-      setTimeout(() => uploadFor(message.bookmarkId), config.postRollWaitMs);
+      setTimeout(() => uploadFor(message.bookmarkId), config.bookmark.postRollWaitMs);
     }
   });
 }
@@ -241,11 +244,11 @@ function connect() {
 async function loadConfig() {
   try {
     const response = await fetch('/api/config');
-    if (response.ok) config = { ...config, ...(await response.json()) };
+    if (response.ok) config = await response.json();
   } catch (error) {
     log(`could not read settings from the hub (${error.message}) — using defaults`);
   }
-  ring = new ChunkRing({ windowMs: config.ringWindowMs });
+  ring = new ChunkRing({ windowMs: config.camera.ringWindowMs });
 }
 
 if (!token) {

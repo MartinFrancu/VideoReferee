@@ -41,7 +41,7 @@ export class CameraCard {
   // `inject` has to run here, in the injection context — not inside the
   // computed below, whose callback runs later.
   readonly #hub = inject(Hub);
-  readonly #warmUpMs = computed(() => this.#hub.config().warmUpMs);
+  readonly #warmUpMs = computed(() => this.#hub.config().camera.warmUpMs);
 
   /**
    * Filming, but not yet holding enough footage to answer a bookmark well. A

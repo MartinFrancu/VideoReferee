@@ -1,12 +1,20 @@
 {
-  "preRollMs": 1500,
-  "postRollMs": 1000,
-  "postRollWaitMs": 1500,
-  "warmUpMs": 20000,
-  "ringWindowMs": 25000,
-  "frameMs": 33,
-  "holdRepeatMs": 200,
-  "holdDelayMs": 400,
-  "pingIntervalMs": 1000,
-  "staleAfterMs": 3000
+  "bookmark": {
+    "preRollMs": 1500,
+    "postRollMs": 1000,
+    "postRollWaitMs": 1500
+  },
+  "camera": {
+    "ringWindowMs": 25000,
+    "warmUpMs": 20000
+  },
+  "review": {
+    "frameMs": 33,
+    "holdRepeatMs": 200,
+    "holdDelayMs": 400
+  },
+  "network": {
+    "pingIntervalMs": 1000,
+    "staleAfterMs": 3000
+  }
 }

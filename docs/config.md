@@ -2,8 +2,13 @@
 
 `config.json`, at the root of the repository. Edit it and restart the hub.
 
-Every setting is a whole number of milliseconds. Leave one out and its default
-is used, so a file with a single line in it is perfectly valid.
+Settings are grouped by what you are thinking about when you change one. Every
+value is a whole number of milliseconds. Leave any of them out — a whole section,
+even — and the defaults are used, so a file with one setting in it is valid:
+
+```json
+{ "bookmark": { "preRollMs": 4000 } }
+```
 
 The hub prints its settings at startup, so what a running hub is actually using
 is always visible — never inferred from the file.
@@ -18,16 +23,33 @@ The phone reads them once, before it starts recording — the buffer size has to
 be right from the first chunk. **A phone already filming keeps the old settings
 until its page is reloaded.**
 
+## `bookmark` — what a bookmark captures
+
 | Setting | Default | What it does |
 |---|---|---|
-| `preRollMs` | 1500 | How much footage before the bookmarked instant a clip carries. Probably too short — 4000–5000 is likelier to be what a referee wants. Raising it means raising `ringWindowMs` too. |
+| `preRollMs` | 1500 | How much footage before the bookmarked instant a clip carries. Probably too short — 4000–5000 is likelier to be what a referee wants. Raising it means raising `camera.ringWindowMs` too. |
 | `postRollMs` | 1000 | How much footage after the instant. |
 | `postRollWaitMs` | 1500 | How long a phone waits after a bookmark before uploading, so the post-roll has actually been recorded. Must be at least `postRollMs`. |
+
+## `camera` — what a phone does while filming
+
+| Setting | Default | What it does |
+|---|---|---|
+| `ringWindowMs` | 25000 | How much footage a phone keeps. The ceiling for the whole `bookmark` section. Costs memory on the phone. |
 | `warmUpMs` | 20000 | Footage a camera must hold before BOOKMARK unlocks. See below. |
-| `ringWindowMs` | 25000 | How much footage a phone keeps. The ceiling for everything above. Costs memory on the phone. |
+
+## `review` — how the review screen moves
+
+| Setting | Default | What it does |
+|---|---|---|
 | `frameMs` | 33 | One frame, for stepping. 33 is 30 fps; use 40 for 25 fps or 50 for 20 fps. Clips are not frame-rate tagged, so this is told rather than measured. |
 | `holdRepeatMs` | 200 | Holding a frame button steps again this often. Lower is a faster walk. |
 | `holdDelayMs` | 400 | How long a frame button must be held before it starts repeating. Keeps an ordinary click to one frame. |
+
+## `network` — how the hub and the phones keep in touch
+
+| Setting | Default | What it does |
+|---|---|---|
 | `pingIntervalMs` | 1000 | How often the hub pings each camera. Also the heartbeat, so raising it makes a dead camera take longer to notice. |
 | `staleAfterMs` | 3000 | Silence longer than this and a camera is no longer shown as live. |
 
@@ -53,6 +75,16 @@ A setting that is not a number, is zero or negative, or is not recognised at all
 is reported and replaced by its default. The unrecognised case matters most: a
 typo like `preRollMS` is otherwise completely silent — the value you thought you
 changed simply keeps its old one.
+
+A setting put in the wrong section is named along with where it belongs:
+
+```
+config: "preRollMs" belongs in "bookmark", not "review" — ignored where it is.
+```
+
+**Files written before the sections existed still work.** A flat file — every
+setting at the top level, no groups — is read as before and reported as out of
+date, because the alternative is an edited config silently reverting to defaults.
 
 ## What is not here yet
 

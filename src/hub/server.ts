@@ -68,7 +68,7 @@ if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
 
 // ---------------------------------------------------------------- state ----
 
-const cameras = new CameraRegistry({ staleAfterMs: config.staleAfterMs });
+const cameras = new CameraRegistry({ staleAfterMs: config.network.staleAfterMs });
 const bookmarks = new BookmarkLedger();
 const syncSamples = new Map<string, SyncSample[]>();
 const heldMs = new Map<string, number>();
@@ -151,8 +151,8 @@ function ingestClip(body: Buffer): void {
     videoTrack: readVideoTrackNumber(prefix) ?? 1,
     timeline: { clock, recordingStartedAt: origin.originDeviceMs },
     bookmarkSessionMs: bookmark.sessionMs,
-    preRollMs: config.preRollMs,
-    postRollMs: config.postRollMs,
+    preRollMs: config.bookmark.preRollMs,
+    postRollMs: config.bookmark.postRollMs,
   });
   if (!clip) throw new Error('no footage covering that moment');
 
@@ -507,7 +507,7 @@ sockets.on('connection', (socket, req) => {
 setInterval(() => {
   tellCameras({ type: 'ping', sentAt: sessionNow() });
   tellOperators();
-}, config.pingIntervalMs);
+}, config.network.pingIntervalMs);
 
 server.listen(PORT, () => {
   const addresses = localAddresses();
@@ -519,7 +519,10 @@ server.listen(PORT, () => {
     console.log(`  Operator  https://${address}:${PORT}/`);
   }
   console.log(`\n  Settings (edit config.json to change):`);
-  for (const [key, value] of Object.entries(config)) console.log(`    ${key.padEnd(16)} ${value}`);
+  for (const [section, settings] of Object.entries(config)) {
+    console.log(`    ${section}`);
+    for (const [key, value] of Object.entries(settings)) console.log(`      ${key.padEnd(16)} ${value}`);
+  }
   console.log(`\n  Cameras join by scanning a QR from the operator screen.`);
   console.log(`  First visit on each device shows a certificate warning — accept it once.\n`);
 });

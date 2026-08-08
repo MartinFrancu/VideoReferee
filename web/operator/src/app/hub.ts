@@ -16,30 +16,18 @@ export type BoutPhase = 'idle' | 'recording' | 'paused';
 
 /** Mirrors Config in src/core/config.ts. The hub is the source of the values. */
 export interface Config {
-  preRollMs: number;
-  postRollMs: number;
-  postRollWaitMs: number;
-  warmUpMs: number;
-  ringWindowMs: number;
-  frameMs: number;
-  holdRepeatMs: number;
-  holdDelayMs: number;
-  pingIntervalMs: number;
-  staleAfterMs: number;
+  bookmark: { preRollMs: number; postRollMs: number; postRollWaitMs: number };
+  camera: { ringWindowMs: number; warmUpMs: number };
+  review: { frameMs: number; holdRepeatMs: number; holdDelayMs: number };
+  network: { pingIntervalMs: number; staleAfterMs: number };
 }
 
 /** Only what is needed before the hub has answered; then they are replaced. */
 export const FALLBACK_CONFIG: Config = {
-  preRollMs: 1500,
-  postRollMs: 1000,
-  postRollWaitMs: 1500,
-  warmUpMs: 20_000,
-  ringWindowMs: 25_000,
-  frameMs: 33,
-  holdRepeatMs: 200,
-  holdDelayMs: 400,
-  pingIntervalMs: 1000,
-  staleAfterMs: 3000,
+  bookmark: { preRollMs: 1500, postRollMs: 1000, postRollWaitMs: 1500 },
+  camera: { ringWindowMs: 25_000, warmUpMs: 20_000 },
+  review: { frameMs: 33, holdRepeatMs: 200, holdDelayMs: 400 },
+  network: { pingIntervalMs: 1000, staleAfterMs: 3000 },
 };
 
 /** A camera that is live but not yet holding enough footage to answer well. */

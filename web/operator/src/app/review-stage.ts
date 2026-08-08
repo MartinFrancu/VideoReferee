@@ -218,7 +218,7 @@ export class ReviewStage {
 
   protected step(frames: number): void {
     this.pause();
-    const next = Math.round(this.relativeMs() + frames * this.#hub.config().frameMs);
+    const next = Math.round(this.relativeMs() + frames * this.#hub.config().review.frameMs);
     this.jumpEveryone(Math.max(this.minRelativeMs(), Math.min(next, this.maxRelativeMs())));
   }
 
@@ -235,7 +235,7 @@ export class ReviewStage {
     this.stopStepping();
     this.step(frames);
 
-    const { holdDelayMs, holdRepeatMs } = this.#hub.config();
+    const { holdDelayMs, holdRepeatMs } = this.#hub.config().review;
     this.#holdTimer = setTimeout(() => {
       this.#holdTimer = setInterval(() => this.step(frames), holdRepeatMs);
     }, holdDelayMs);
