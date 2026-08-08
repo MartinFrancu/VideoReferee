@@ -4,7 +4,7 @@
 // clip starts, what a bookmark means — is computed in src/core, where it is
 // covered by tests. This file moves bytes and holds state.
 import { createServer } from 'node:https';
-import { readFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +26,7 @@ import {
   type CameraView,
   type UploadHeader,
 } from '../core/protocol.js';
+import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '../core/state.js';
 import { localAddresses } from './network.js';
 import { resolveStaticPath } from './static-path.js';
 
@@ -150,6 +151,82 @@ function ingestClip(body: Buffer): void {
   );
 }
 
+// ------------------------------------------------------- save and load ----
+//
+// One file holds a whole session — cameras, bookmarks, and the clips inline —
+// so a state worth asking someone about can be sent as a single attachment and
+// opened on a different laptop.
+
+/** Every clip a bookmark still refers to, base64 into the state file. */
+function clipsForState(): SavedState['clips'] {
+  const wanted = new Set<string>();
+  for (const bookmark of bookmarks.list()) {
+    for (const angle of bookmark.angles) {
+      if (angle.url) wanted.add(angle.url.slice('/clips/'.length));
+    }
+  }
+
+  const clips: { name: string; base64: string }[] = [];
+  for (const name of wanted) {
+    if (!isSafeClipName(name)) continue;
+    const file = join(CLIPS_DIR, name);
+    // A clip can be missing if the folder was cleaned by hand. Save the rest:
+    // a state with a gap is far more useful than a failed save.
+    if (!statSync(file, { throwIfNoEntry: false })?.isFile()) continue;
+    clips.push({ name, base64: readFileSync(file).toString('base64') });
+  }
+  return clips;
+}
+
+function captureState(): SavedState {
+  return {
+    format: STATE_FORMAT,
+    savedAt: new Date().toISOString(),
+    boutPhase,
+    cameras: cameraViews(),
+    bookmarks: bookmarks.list(),
+    clips: clipsForState(),
+  };
+}
+
+/**
+ * Replace the running session with a saved one.
+ *
+ * Live cameras are dropped rather than merged. A loaded session describes phones
+ * that were filming somewhere else, and a roster that mixes the two would show
+ * bookmarks against cameras that never took them.
+ */
+function loadState(state: SavedState): void {
+  for (const clip of state.clips) {
+    writeFileSync(join(CLIPS_DIR, clip.name), Buffer.from(clip.base64, 'base64'));
+  }
+
+  for (const socket of cameraSockets.values()) socket.close();
+  cameraSockets.clear();
+  syncSamples.clear();
+  heldMs.clear();
+
+  cameras.restore(state.cameras.map((camera) => ({ id: camera.id, name: camera.name })));
+  bookmarks.restore(state.bookmarks);
+  boutPhase = state.boutPhase;
+  tellOperators();
+
+  console.log(
+    `loaded ${state.bookmarks.length} bookmark(s), ${state.cameras.length} camera(s), ` +
+      `${state.clips.length} clip(s) saved at ${state.savedAt}`
+  );
+}
+
+/** End of bout: the marks go, the phones stay enrolled. */
+function resetBookmarks(): void {
+  bookmarks.clear();
+  for (const name of readdirSync(CLIPS_DIR)) {
+    if (isSafeClipName(name)) rmSync(join(CLIPS_DIR, name), { force: true });
+  }
+  tellOperators();
+  console.log('bookmarks cleared');
+}
+
 // ----------------------------------------------------------------- http ----
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -239,6 +316,37 @@ async function handle(
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ phase: boutPhase }));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/state') {
+    const filename = `videoreferee-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    const body = JSON.stringify(captureState());
+    console.log(`saved state: ${(Buffer.byteLength(body) / 1024 / 1024).toFixed(1)}MB`);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    res.end(body);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/state') {
+    try {
+      loadState(parseSavedState(await readJson(req)));
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      // The file came from outside, so a bad one is expected rather than a fault.
+      const reason = error instanceof Error ? error.message : 'could not read that file';
+      console.log(`load rejected: ${reason}`);
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end(reason);
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/reset') {
+    resetBookmarks();
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
     return;
   }
 

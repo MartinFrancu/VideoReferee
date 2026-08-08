@@ -46,6 +46,9 @@ export class CameraRegistry {
 
   /** Bind a connecting camera to its enrolment. Null if the token is not one of ours. */
   join(token: string, now: number): string | null {
+    // A camera restored from a saved file has no token. Without this, a phone
+    // arriving with an empty one would be let in as that camera.
+    if (token === '') return null;
     for (const camera of this.#cameras.values()) {
       if (camera.token !== token) continue;
       camera.lastSeenAt = now;
@@ -58,6 +61,20 @@ export class CameraRegistry {
   heartbeat(id: string, now: number): void {
     const camera = this.#cameras.get(id);
     if (camera) camera.lastSeenAt = now;
+  }
+
+  /**
+   * Replace the roster with one from a loaded session.
+   *
+   * Loaded cameras get no join token: a saved file describes phones that were
+   * filming somewhere else, and handing out their tokens would let an unrelated
+   * phone claim one. They exist so bookmarks have names to show against.
+   */
+  restore(cameras: readonly { id: string; name: string }[]): void {
+    this.#cameras.clear();
+    for (const camera of cameras) {
+      this.#cameras.set(camera.id, { id: camera.id, name: camera.name, token: '', lastSeenAt: null });
+    }
   }
 
   list(now: number): Camera[] {

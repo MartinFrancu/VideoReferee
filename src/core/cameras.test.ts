@@ -38,6 +38,17 @@ describe('enrolling cameras', () => {
     expect(registry.list(1200 + 3001)[0]).toMatchObject({ name: 'mike', live: false });
   });
 
+  test('cameras restored from a saved session are listed, but cannot be joined', () => {
+    const registry = new CameraRegistry();
+    registry.restore([{ id: 'cam-1', name: 'mike' }]);
+
+    expect(registry.list(1000)).toEqual([
+      { id: 'cam-1', name: 'mike', live: false, everJoined: false },
+    ]);
+    // They hold no token, so an empty one must not be a skeleton key.
+    expect(registry.join('', 1000)).toBeNull();
+  });
+
   test('a camera that has gone quiet is distinguishable from one that never joined', () => {
     // Different problems: one phone needs its QR scanned, the other has died.
     const registry = new CameraRegistry({ staleAfterMs: 3000 });

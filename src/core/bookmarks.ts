@@ -55,6 +55,24 @@ export class BookmarkLedger {
     bookmark.angles.set(angle.cameraId, { ...angle, status: 'received' });
   }
 
+  /** Replace everything with a loaded session. Used by save/load, not by a bout. */
+  restore(bookmarks: readonly Bookmark[]): void {
+    this.#bookmarks.clear();
+    for (const bookmark of bookmarks) {
+      this.#bookmarks.set(bookmark.id, {
+        id: bookmark.id,
+        sessionMs: bookmark.sessionMs,
+        triggeredBy: bookmark.triggeredBy,
+        angles: new Map(bookmark.angles.map((angle) => [angle.cameraId, angle])),
+      });
+    }
+  }
+
+  /** Forget every bookmark. The cameras stay; only the bout's marks go. */
+  clear(): void {
+    this.#bookmarks.clear();
+  }
+
   #view(id: string): Bookmark | undefined {
     const bookmark = this.#bookmarks.get(id);
     if (!bookmark) return undefined;

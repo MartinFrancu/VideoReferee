@@ -83,4 +83,25 @@ export class Hub {
   async setPhase(phase: BoutPhase): Promise<void> {
     await firstValueFrom(this.#http.post('/api/bout', { phase }));
   }
+
+  /**
+   * Hand a saved session back to the hub.
+   *
+   * The file is posted as the text it already is rather than being parsed here.
+   * The hub has to validate it either way — it is the side that turns clip names
+   * into filenames — so parsing it twice would only move where a bad file is
+   * first noticed.
+   */
+  async loadState(file: File): Promise<void> {
+    await firstValueFrom(
+      this.#http.post('/api/state', await file.text(), {
+        headers: { 'Content-Type': 'application/json' },
+        responseType: 'text',
+      })
+    );
+  }
+
+  async resetBookmarks(): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/reset', {}));
+  }
 }

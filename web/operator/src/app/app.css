@@ -17,6 +17,50 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .offline { color: var(--dead); }
 .spacer { flex: 1; }
 
+/* Session menu. Tucked away: everything in it is either rare or destructive. */
+.menu { position: relative; }
+.menu > button { font-size: 16px; line-height: 1; padding: 6px 12px; }
+.menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 10;
+  display: grid;
+  min-width: 232px;
+  padding: 6px;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.menu-items > a,
+.menu-items > button {
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  text-decoration: none;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+.menu-items > a:hover,
+.menu-items > button:hover { background: rgba(255, 255, 255, 0.07); }
+.danger { color: var(--dead); }
+
+.notice {
+  margin: 0;
+  padding: 11px 22px;
+  font-size: 13.5px;
+  cursor: pointer;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+}
+.notice.bad { color: var(--dead); }
+
 main { padding: 22px; display: grid; gap: 22px; max-width: 1100px; }
 section h2 {
   font-size: 13px;

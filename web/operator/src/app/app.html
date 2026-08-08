@@ -7,7 +7,42 @@
   <span class="spacer"></span>
   <button class="primary" data-testid="start-bout" (click)="hub.setPhase('recording')">Start bout</button>
   <button data-testid="stop-bout" (click)="hub.setPhase('idle')">Stop</button>
+
+  <div class="menu">
+    <button
+      data-testid="menu-toggle"
+      title="Session"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="menuOpen()"
+      (click)="toggleMenu()"
+    >⋯</button>
+
+    @if (menuOpen()) {
+      <div class="menu-items" role="menu" data-testid="menu">
+        <a href="/api/state" download data-testid="save-state" (click)="menuOpen.set(false)">
+          Save session to a file…
+        </a>
+        <button data-testid="load-state" (click)="pickStateFile()">Load session from a file…</button>
+        <button class="danger" data-testid="reset" (click)="askReset()">Clear all bookmarks…</button>
+      </div>
+    }
+  </div>
 </header>
+
+<input
+  #stateFile
+  type="file"
+  accept="application/json,.json"
+  hidden
+  data-testid="state-file"
+  (change)="onStateFilePicked($event)"
+/>
+
+@if (notice(); as note) {
+  <p class="notice" [class.bad]="note.bad" data-testid="notice" (click)="dismissNotice()">
+    {{ note.text }}
+  </p>
+}
 
 <main>
   <section>
@@ -60,4 +95,18 @@
   <div class="qr" data-testid="qr" [innerHTML]="qr()"></div>
   <div class="joinUrl" data-testid="join-url">{{ invited()?.joinUrl }}</div>
   <p class="actions"><button data-testid="close-qr" (click)="closeDialog()">Done</button></p>
+</dialog>
+
+<dialog #resetDialog data-testid="reset-dialog">
+  <h3>Clear all bookmarks?</h3>
+  <p>
+    Every bookmark and every clip on this hub is deleted. The cameras stay
+    enrolled and keep filming. Save the session first if you might want it back.
+  </p>
+  <p class="actions">
+    <button data-testid="cancel-reset" (click)="cancelReset()">Cancel</button>
+    <button class="danger" data-testid="confirm-reset" (click)="confirmReset()">
+      Clear bookmarks
+    </button>
+  </p>
 </dialog>

@@ -41,6 +41,63 @@ export class App {
   protected readonly qr = signal<SafeHtml | null>(null);
 
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('qrDialog');
+  private readonly resetDialog = viewChild<ElementRef<HTMLDialogElement>>('resetDialog');
+  private readonly stateFile = viewChild<ElementRef<HTMLInputElement>>('stateFile');
+
+  /** The session menu: saving, loading, and clearing out after a bout. */
+  protected readonly menuOpen = signal(false);
+  protected readonly notice = signal<{ text: string; bad: boolean } | null>(null);
+
+  protected toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
+  }
+
+  protected pickStateFile(): void {
+    this.menuOpen.set(false);
+    this.stateFile()?.nativeElement.click();
+  }
+
+  protected async onStateFilePicked(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Clear it first, so picking the same file twice still fires a change.
+    input.value = '';
+    if (!file) return;
+
+    this.notice.set({ text: `Loading ${file.name}…`, bad: false });
+    try {
+      await this.hub.loadState(file);
+      this.selectedBookmark.set(null);
+      this.notice.set({ text: `Loaded ${file.name}`, bad: false });
+    } catch (error: unknown) {
+      // The hub says what is wrong with the file; it is more use than "failed".
+      const reason =
+        (error as { error?: string })?.error ||
+        (error as { message?: string })?.message ||
+        'could not load that file';
+      this.notice.set({ text: reason, bad: true });
+    }
+  }
+
+  protected askReset(): void {
+    this.menuOpen.set(false);
+    this.resetDialog()?.nativeElement.showModal();
+  }
+
+  protected async confirmReset(): Promise<void> {
+    this.resetDialog()?.nativeElement.close();
+    this.selectedBookmark.set(null);
+    await this.hub.resetBookmarks();
+    this.notice.set({ text: 'Bookmarks cleared', bad: false });
+  }
+
+  protected cancelReset(): void {
+    this.resetDialog()?.nativeElement.close();
+  }
+
+  protected dismissNotice(): void {
+    this.notice.set(null);
+  }
 
   protected addCamera(): void {
     submit(this.cameraForm, async () => {

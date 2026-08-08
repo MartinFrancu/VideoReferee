@@ -187,10 +187,9 @@ is looking at the phone, not the screen.
 swapped mid-tournament stays on the list forever, and there is no way to get the
 join QR back once the dialog is closed.
 
-**Clear the bookmarks, or delete one.** When a bout ends the tool should reset.
-The user's read is that dropping bookmarks plus a resync is enough of a "new
-bout", and that is probably right — it avoids inventing a bout object before
-anything needs one.
+**Delete a single bookmark.** Clearing them all is done (session menu → *Clear
+all bookmarks*, behind a confirmation). Removing one at a time is not, and is the
+likelier need once bookmarks get names.
 
 **Name a bookmark.** The user likes this. Cheap: `Bookmark` already has room.
 
@@ -239,11 +238,21 @@ injecting the path flavour, but no end-to-end walkthrough has ever run there.
 **A bout access token.** Nothing stops a phone on the same Wi-Fi from injecting
 bookmarks.
 
-**Saving a bout to disk.** *(user request: "the save of data would be nice")* So a
-bout can be paused and revisited. A JSON file plus the clips is enough;
-explicitly not a database. Note the overlap with P0 — the capture format and the
-save format may want to be the same file, and it is worth checking before
-building the second one.
+**Saving a bout to disk — done, as far as it goes.** The session menu saves
+cameras, bookmarks and the clips inline into one JSON file, loads one back, and
+clears the bookmarks behind a confirmation (`src/core/state.ts`,
+`/api/state`, `/api/reset`).
+
+What it deliberately does *not* carry is the derivation — the sync samples, the
+media-origin samples and both uncertainties. Those are computed at ingest and
+discarded, so a saved file shows what the hub concluded but not how, and cannot
+replay a cut. That is still the P0 capture work; the state file is the obvious
+place to put it when it exists, and the format number is there to bump.
+
+Two smaller gaps: a loaded camera is listed as never-joined, so the card reads
+"waiting for its QR to be scanned" when it means "this camera was somewhere
+else"; and the file is read whole into memory on both sides, which is fine for a
+bout and would not be for an afternoon.
 
 ---
 
