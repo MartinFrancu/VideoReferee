@@ -14,12 +14,37 @@ export interface Camera {
 
 export type BoutPhase = 'idle' | 'recording' | 'paused';
 
-/** Mirrors WARM_UP_MS in src/core/protocol.ts. */
-export const WARM_UP_MS = 20_000;
+/** Mirrors Config in src/core/config.ts. The hub is the source of the values. */
+export interface Config {
+  preRollMs: number;
+  postRollMs: number;
+  postRollWaitMs: number;
+  warmUpMs: number;
+  ringWindowMs: number;
+  frameMs: number;
+  holdRepeatMs: number;
+  holdDelayMs: number;
+  pingIntervalMs: number;
+  staleAfterMs: number;
+}
+
+/** Only what is needed before the hub has answered; then they are replaced. */
+export const FALLBACK_CONFIG: Config = {
+  preRollMs: 1500,
+  postRollMs: 1000,
+  postRollWaitMs: 1500,
+  warmUpMs: 20_000,
+  ringWindowMs: 25_000,
+  frameMs: 33,
+  holdRepeatMs: 200,
+  holdDelayMs: 400,
+  pingIntervalMs: 1000,
+  staleAfterMs: 3000,
+};
 
 /** A camera that is live but not yet holding enough footage to answer well. */
-export function isWarmingUp(camera: Camera): boolean {
-  return camera.live && (camera.heldMs ?? 0) < WARM_UP_MS;
+export function isWarmingUp(camera: Camera, warmUpMs: number): boolean {
+  return camera.live && (camera.heldMs ?? 0) < warmUpMs;
 }
 
 /** Mirrors Angle and Bookmark in src/core/bookmarks.ts. */
@@ -61,11 +86,16 @@ export class Hub {
   readonly phase = signal<BoutPhase>('idle');
   readonly bookmarks = signal<Bookmark[]>([]);
   readonly connected = signal(false);
+  /** Settings live on the hub, in config.json; this screen only reads them. */
+  readonly config = signal<Config>(FALLBACK_CONFIG);
 
   readonly #http = inject(HttpClient);
 
   constructor() {
     this.#connect();
+    void firstValueFrom(this.#http.get<Config>('/api/config'))
+      .then((config) => this.config.set(config))
+      .catch(() => {});
   }
 
   #connect(): void {

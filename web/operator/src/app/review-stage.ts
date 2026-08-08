@@ -1,17 +1,17 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
+  inject,
   input,
   signal,
   viewChildren,
 } from '@angular/core';
 
-import type { Bookmark, Camera } from './hub';
+import { Hub, type Bookmark, type Camera } from './hub';
 import { ReviewTile } from './review-tile';
 
-/** One frame at 30fps. Fine for stepping; the clips are not frame-rate tagged. */
-const FRAME_MS = 1000 / 30;
 /** Beyond this the angles are visibly apart, so correct rather than nudge. */
 const HARD_RESYNC_MS = 200;
 const NUDGE_MS = 15;
@@ -31,8 +31,29 @@ const NUDGE_MS = 15;
         {{ playing() ? 'Pause' : 'Play all' }}
       </button>
 
-      <button data-testid="step-back" (click)="step(-1)">◀ frame</button>
-      <button data-testid="step-forward" (click)="step(1)">frame ▶</button>
+      <!--
+        Press steps once; holding walks forward a frame at a time. Bound to
+        pointerdown rather than click so the first frame lands on the press, with
+        the keyboard handled explicitly since that skips click entirely.
+      -->
+      <button
+        data-testid="step-back"
+        (pointerdown)="startStepping(-1, $event)"
+        (pointerup)="stopStepping()"
+        (pointerleave)="stopStepping()"
+        (pointercancel)="stopStepping()"
+        (keydown.enter)="step(-1)"
+        (keydown.space)="step(-1)"
+      >◀ frame</button>
+      <button
+        data-testid="step-forward"
+        (pointerdown)="startStepping(1, $event)"
+        (pointerup)="stopStepping()"
+        (pointerleave)="stopStepping()"
+        (pointercancel)="stopStepping()"
+        (keydown.enter)="step(1)"
+        (keydown.space)="step(1)"
+      >frame ▶</button>
 
       <label class="rate">
         speed
@@ -111,8 +132,25 @@ export class ReviewStage {
   protected readonly dragging = signal(false);
 
   private readonly tiles = viewChildren(ReviewTile);
+  readonly #hub = inject(Hub);
+  readonly #destroyRef = inject(DestroyRef);
   /** What each clip can reach, learned once its metadata is in. */
   readonly #spans = signal(new Map<string, { backMs: number; forwardMs: number }>());
+  /** Holds the delay first, then the repeat. Null whenever nothing is held. */
+  #holdTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    // A pointer released off the button never reports back to it, and the
+    // repeat would run on with nothing holding it down.
+    const stop = () => this.stopStepping();
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    this.#destroyRef.onDestroy(() => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      this.stopStepping();
+    });
+  }
 
   protected readonly angles = computed(() => this.bookmark().angles);
 
@@ -180,8 +218,34 @@ export class ReviewStage {
 
   protected step(frames: number): void {
     this.pause();
-    const next = Math.round(this.relativeMs() + frames * FRAME_MS);
+    const next = Math.round(this.relativeMs() + frames * this.#hub.config().frameMs);
     this.jumpEveryone(Math.max(this.minRelativeMs(), Math.min(next, this.maxRelativeMs())));
+  }
+
+  /**
+   * Step once now, and keep stepping while the button is held.
+   *
+   * Every angle moves on every step, so this is a slow walk through the same
+   * instant on all of them rather than playback — which is what a referee
+   * actually does at the moment of a hit. The delay before repeating keeps an
+   * ordinary click to a single frame.
+   */
+  protected startStepping(frames: number, event: Event): void {
+    event.preventDefault();
+    this.stopStepping();
+    this.step(frames);
+
+    const { holdDelayMs, holdRepeatMs } = this.#hub.config();
+    this.#holdTimer = setTimeout(() => {
+      this.#holdTimer = setInterval(() => this.step(frames), holdRepeatMs);
+    }, holdDelayMs);
+  }
+
+  protected stopStepping(): void {
+    if (this.#holdTimer === null) return;
+    clearTimeout(this.#holdTimer);
+    clearInterval(this.#holdTimer);
+    this.#holdTimer = null;
   }
 
   protected setRate(rate: number): void {

@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
-import { WARM_UP_MS, isWarmingUp, type Camera } from './hub';
+import { Hub, isWarmingUp, type Camera } from './hub';
 
 @Component({
   selector: 'vr-camera-card',
@@ -38,14 +38,19 @@ import { WARM_UP_MS, isWarmingUp, type Camera } from './hub';
 export class CameraCard {
   readonly camera = input.required<Camera>();
 
+  // `inject` has to run here, in the injection context — not inside the
+  // computed below, whose callback runs later.
+  readonly #hub = inject(Hub);
+  readonly #warmUpMs = computed(() => this.#hub.config().warmUpMs);
+
   /**
    * Filming, but not yet holding enough footage to answer a bookmark well. A
    * green light here would invite exactly the tap that produces a bad clip.
    */
-  protected readonly warming = computed(() => isWarmingUp(this.camera()));
+  protected readonly warming = computed(() => isWarmingUp(this.camera(), this.#warmUpMs()));
 
   protected readonly percent = computed(() =>
-    Math.min(100, Math.round(((this.camera().heldMs ?? 0) / WARM_UP_MS) * 100))
+    Math.min(100, Math.round(((this.camera().heldMs ?? 0) / this.#warmUpMs()) * 100))
   );
 
   /**
@@ -58,7 +63,7 @@ export class CameraCard {
     if (!camera.live) return camera.everJoined ? 'not responding' : 'waiting for its QR to be scanned';
 
     if (this.warming()) {
-      const remaining = Math.ceil((WARM_UP_MS - (camera.heldMs ?? 0)) / 1000);
+      const remaining = Math.ceil((this.#warmUpMs() - (camera.heldMs ?? 0)) / 1000);
       return `warming up — ready in ${remaining}s`;
     }
 

@@ -43,31 +43,12 @@ export interface CameraView {
 
 export type BoutPhase = 'idle' | 'recording' | 'paused';
 
-export const PING_INTERVAL_MS = 1000;
-
-/** How much footage either side of a bookmark a referee gets to look at. */
-export const PRE_ROLL_MS = 1500;
-export const POST_ROLL_MS = 1000;
-
 /**
- * How much footage a camera holds before it is treated as ready.
- *
- * Two things converge on the same number. The ring is filling toward its 25 s
- * window, and — at one ping a second — the hub is gathering the 20 samples
- * `estimateClock` keeps. Both estimates a clip depends on take the *minimum* of
- * their samples, so both are at their worst in the first seconds and improve as
- * samples accumulate. A bookmark taken before then is the one likely to be
- * misaligned, which is why this is shown rather than left implicit.
+ * Timings that used to live here are now settings — see `src/core/config.ts`
+ * and `config.json`. They were duplicated by hand into the camera page and the
+ * operator screen; both now read them from the hub instead.
  */
-export const WARM_UP_MS = 20_000;
 
-/**
- * A camera's upload: a small JSON header, then the pinned prefix, then the ring.
- *
- * Multipart would need a parser on the hub for no benefit — the two byte runs
- * are opaque and the header is ours. Everything before the bytes is described
- * here so both sides agree without a schema library.
- */
 export interface UploadHeader {
   readonly bookmarkId: string;
   readonly cameraId: string;

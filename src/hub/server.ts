@@ -18,14 +18,12 @@ import { readClusters, readInitSegment, readVideoTrackNumber } from '../core/med
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
 import {
-  PING_INTERVAL_MS,
-  POST_ROLL_MS,
-  PRE_ROLL_MS,
   type BoutPhase,
   type CameraToHub,
   type CameraView,
   type UploadHeader,
 } from '../core/protocol.js';
+import { readConfig } from '../core/config.js';
 import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '../core/state.js';
 import { localAddresses } from './network.js';
 import { resolveStaticPath } from './static-path.js';
@@ -37,7 +35,31 @@ const WEB = join(ROOT, 'web');
 const OPERATOR_DIST = join(WEB, 'operator', 'dist', 'browser');
 const CERT_DIR = join(ROOT, 'certs');
 const CLIPS_DIR = join(ROOT, 'clips');
+const CONFIG_FILE = join(ROOT, 'config.json');
 mkdirSync(CLIPS_DIR, { recursive: true });
+
+/**
+ * Settings, read once at startup.
+ *
+ * A config the hub dislikes is reported and replaced with its default rather
+ * than refused — this runs at a tournament, where failing to start is far worse
+ * than running with a number someone mistyped.
+ */
+function loadConfig() {
+  let raw: unknown;
+  if (existsSync(CONFIG_FILE)) {
+    try {
+      raw = JSON.parse(readFileSync(CONFIG_FILE, 'utf8'));
+    } catch (error) {
+      console.log(`config.json could not be read (${(error as Error).message}) — using defaults.`);
+    }
+  }
+  const { config, problems } = readConfig(raw);
+  for (const problem of problems) console.log(`config: ${problem}`);
+  return config;
+}
+
+const config = loadConfig();
 
 if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
   console.error('No certificate yet. Run `npm run gen-cert` first.');
@@ -46,7 +68,7 @@ if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
 
 // ---------------------------------------------------------------- state ----
 
-const cameras = new CameraRegistry();
+const cameras = new CameraRegistry({ staleAfterMs: config.staleAfterMs });
 const bookmarks = new BookmarkLedger();
 const syncSamples = new Map<string, SyncSample[]>();
 const heldMs = new Map<string, number>();
@@ -129,8 +151,8 @@ function ingestClip(body: Buffer): void {
     videoTrack: readVideoTrackNumber(prefix) ?? 1,
     timeline: { clock, recordingStartedAt: origin.originDeviceMs },
     bookmarkSessionMs: bookmark.sessionMs,
-    preRollMs: PRE_ROLL_MS,
-    postRollMs: POST_ROLL_MS,
+    preRollMs: config.preRollMs,
+    postRollMs: config.postRollMs,
   });
   if (!clip) throw new Error('no footage covering that moment');
 
@@ -319,6 +341,12 @@ async function handle(
     return;
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/config') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(config));
+    return;
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/state') {
     const filename = `videoreferee-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
     const body = JSON.stringify(captureState());
@@ -479,7 +507,7 @@ sockets.on('connection', (socket, req) => {
 setInterval(() => {
   tellCameras({ type: 'ping', sentAt: sessionNow() });
   tellOperators();
-}, PING_INTERVAL_MS);
+}, config.pingIntervalMs);
 
 server.listen(PORT, () => {
   const addresses = localAddresses();
@@ -490,6 +518,8 @@ server.listen(PORT, () => {
   for (const address of addresses) {
     console.log(`  Operator  https://${address}:${PORT}/`);
   }
+  console.log(`\n  Settings (edit config.json to change):`);
+  for (const [key, value] of Object.entries(config)) console.log(`    ${key.padEnd(16)} ${value}`);
   console.log(`\n  Cameras join by scanning a QR from the operator screen.`);
   console.log(`  First visit on each device shows a certificate warning — accept it once.\n`);
 });

@@ -7,15 +7,13 @@
 import { ChunkRing } from './ring.js';
 
 const CHUNK_MS = 250;
-/**
- * A bookmark asks for footage from after the moment too, and the recorder has
- * not produced it yet. Wait for the post-roll plus a chunk, so the ring covers
- * the whole window before it is sent.
- */
-const POST_ROLL_WAIT_MS = 1500;
 const STATUS_INTERVAL_MS = 1000;
-/** Mirrors WARM_UP_MS in src/core/protocol.ts. */
-const WARM_UP_MS = 20_000;
+
+/**
+ * Settings come from the hub, so there is one place to change them and no copy
+ * here to drift. These are only the fallbacks for a hub too old to be asked.
+ */
+let config = { postRollWaitMs: 1500, warmUpMs: 20_000, ringWindowMs: 25_000 };
 
 const nameEl = document.getElementById('name');
 const pipEl = document.getElementById('pip');
@@ -29,7 +27,7 @@ const warmupFillEl = document.getElementById('warmupFill');
 const warmupTextEl = document.getElementById('warmupText');
 
 const token = new URLSearchParams(location.search).get('t');
-const ring = new ChunkRing();
+let ring = new ChunkRing();
 let socket = null;
 /** Assigned by the hub when we join; the upload has no socket to be traced to. */
 let cameraId = null;
@@ -128,11 +126,11 @@ let ready = false;
 function showWarmUp(heldMs) {
   if (ready) return;
 
-  const fraction = Math.min(1, heldMs / WARM_UP_MS);
+  const fraction = Math.min(1, heldMs / config.warmUpMs);
   warmupFillEl.style.width = `${Math.round(fraction * 100)}%`;
 
-  if (heldMs < WARM_UP_MS) {
-    const remaining = Math.ceil((WARM_UP_MS - heldMs) / 1000);
+  if (heldMs < config.warmUpMs) {
+    const remaining = Math.ceil((config.warmUpMs - heldMs) / 1000);
     warmupTextEl.textContent = `ready in ${remaining}s`;
     return;
   }
@@ -228,9 +226,26 @@ function connect() {
     if (message.type === 'bookmark') {
       log('bookmark — sending what I have');
       // Wait for the post-roll to actually be recorded before handing it over.
-      setTimeout(() => uploadFor(message.bookmarkId), POST_ROLL_WAIT_MS);
+      setTimeout(() => uploadFor(message.bookmarkId), config.postRollWaitMs);
     }
   });
+}
+
+/**
+ * Ask the hub for its settings before recording starts.
+ *
+ * The ring size has to be right from the first chunk — it cannot be resized
+ * later without throwing away footage — so this happens before connecting
+ * rather than alongside it.
+ */
+async function loadConfig() {
+  try {
+    const response = await fetch('/api/config');
+    if (response.ok) config = { ...config, ...(await response.json()) };
+  } catch (error) {
+    log(`could not read settings from the hub (${error.message}) — using defaults`);
+  }
+  ring = new ChunkRing({ windowMs: config.ringWindowMs });
 }
 
 if (!token) {
@@ -238,5 +253,5 @@ if (!token) {
   nameEl.textContent = 'not enrolled';
   log('This link has no join code. Add a camera on the operator screen and scan its QR.');
 } else {
-  connect();
+  loadConfig().then(connect);
 }

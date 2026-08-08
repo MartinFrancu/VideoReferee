@@ -161,10 +161,12 @@ longer exists and should be treated as stale rather than trusted.
 
 **A camera that reconnects** keeps its identity but its recording anchor resets.
 
-**Pre-roll and post-roll as configuration.** Currently constants. 1.5 s of
-pre-roll is probably too short; 4–5 s is likelier to be what a referee wants,
-which implies a ~30 s ring buffer. Interacts with the warm-up above — a longer
-ring takes longer to fill.
+**~~Pre-roll and post-roll as configuration~~ — done.** Along with eight other
+timings, in `config.json`; see `docs/config.md`. The question it was really
+about is still open and now cheap to answer: 1.5 s of pre-roll is probably too
+short, and 4–5 s is likelier to be what a referee wants. That needs
+`ringWindowMs` raised with it, which costs memory on the phone. **Needs use** —
+try 4000 at the next bout and see.
 
 **A cut clip decodes with no missing-reference errors.** Verified by hand in
 batch 3, never automated. Needs a decoder, so it belongs at the integration level.
