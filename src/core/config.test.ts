@@ -87,21 +87,6 @@ describe('readConfig', () => {
     });
   });
 
-  /**
-   * The settings were a flat list before they were grouped. A file written
-   * against the old layout still works, because the alternative is an edited
-   * config silently reverting to defaults — the exact failure sections were
-   * meant to prevent.
-   */
-  describe('a file from before the sections', () => {
-    it('still applies, and says it is out of date', () => {
-      const { config, problems } = read({ preRollMs: 4000, frameMs: 40 });
-      expect(config.bookmark.preRollMs).toBe(4000);
-      expect(config.review.frameMs).toBe(40);
-      expect(problems.join(' ')).toMatch(/older layout|flat/i);
-    });
-  });
-
   describe('settings that would break each other', () => {
     /**
      * The ring holds a window of footage, so what a camera can ever be holding

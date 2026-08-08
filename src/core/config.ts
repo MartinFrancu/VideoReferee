@@ -2,8 +2,8 @@
 //
 // Grouped by what you are thinking about when you change one: what a bookmark
 // captures, what a phone holds, how the review screen moves, and how the hub
-// and the phones keep in touch. A flat list gave no clue which setting belonged
-// to which part of the system.
+// and the phones keep in touch. Grouped rather than listed flat, because a flat
+// list gives no clue which setting belongs to which part of the system.
 //
 // Read from `config.json` at startup. Nothing in here can stop the hub
 // starting: a setting it dislikes is reported and replaced by its default,
@@ -128,38 +128,17 @@ export function readConfig(input: unknown): ConfigResult {
     if (!isRecord(input)) {
       problems.push('config.json is not a set of settings — using defaults throughout.');
     } else {
-      let sawFlat = false;
-
       for (const [key, value] of Object.entries(input)) {
-        if (SECTION_NAMES.includes(key as SectionName)) {
-          const section = key as SectionName;
-          if (!isRecord(value)) {
-            problems.push(`"${section}" should be a group of settings, not ${JSON.stringify(value)} — ignored.`);
-            continue;
-          }
-          for (const [setting, given] of Object.entries(value)) apply(section, setting, given);
+        if (!SECTION_NAMES.includes(key as SectionName)) {
+          problems.push(`"${key}" is not a section — ignored. Expected one of: ${SECTION_NAMES.join(', ')}.`);
           continue;
         }
-
-        // Settings used to sit at the top level. Keep reading those rather than
-        // let an edited file silently revert to defaults.
-        const home = HOME_SECTION.get(key);
-        if (home !== undefined) {
-          sawFlat = true;
-          apply(home, key, value);
+        const section = key as SectionName;
+        if (!isRecord(value)) {
+          problems.push(`"${section}" should be a group of settings, not ${JSON.stringify(value)} — ignored.`);
           continue;
         }
-
-        problems.push(
-          `"${key}" is not a section — ignored. Expected one of: ${SECTION_NAMES.join(', ')}.`
-        );
-      }
-
-      if (sawFlat) {
-        problems.push(
-          `config.json uses the older flat layout. It still works, but settings are now grouped ` +
-            `into ${SECTION_NAMES.join(', ')} — see docs/config.md.`
-        );
+        for (const [setting, given] of Object.entries(value)) apply(section, setting, given);
       }
     }
   }

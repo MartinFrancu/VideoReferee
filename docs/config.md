@@ -82,10 +82,6 @@ A setting put in the wrong section is named along with where it belongs:
 config: "preRollMs" belongs in "bookmark", not "review" — ignored where it is.
 ```
 
-**Files written before the sections existed still work.** A flat file — every
-setting at the top level, no groups — is read as before and reported as out of
-date, because the alternative is an edited config silently reverting to defaults.
-
 ## What is not here yet
 
 `warmUpMs` is a stand-in. Readiness ought to come from the estimates themselves
