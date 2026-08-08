@@ -6,7 +6,7 @@
 <title>VideoReferee — camera</title>
 <style>
   :root { --ground: #0d1116; --panel: #1a2027; --rule: #2b343d; --ink: #e6edf2;
-          --faded: #8fa1ae; --live: #4bbf73; --dead: #d9534f; }
+          --faded: #8fa1ae; --live: #4bbf73; --dead: #d9534f; --warm: #d8a13a; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink);
                font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -17,10 +17,22 @@
            font-size: 13px; color: var(--faded); }
   .pip { width: 9px; height: 9px; border-radius: 50%; background: var(--dead); }
   .pip.live { background: var(--live); }
+  .pip.warm { background: var(--warm); }
   #log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
          color: var(--faded); padding: 12px 16px; white-space: pre-wrap;
          line-height: 1.6; overflow-y: auto; }
   #preview { width: 100%; height: 46vh; object-fit: cover; background: #000; display: block; }
+  #stage { position: relative; }
+  #warmup {
+    position: absolute; inset: 0; display: grid; place-content: center; justify-items: center;
+    gap: 14px; padding: 24px; text-align: center; background: rgba(13, 17, 22, 0.93);
+  }
+  #warmup[hidden] { display: none; }
+  #warmupTitle { font-size: 19px; font-weight: 650; }
+  #warmupBar { width: min(260px, 70vw); height: 8px; border-radius: 4px; background: var(--rule); overflow: hidden; }
+  #warmupFill { height: 100%; width: 0; background: var(--live); transition: width 0.4s linear; }
+  #warmupText { font-size: 13.5px; color: var(--faded); }
+  #bookmarkBtn:disabled { background: var(--rule); color: var(--faded); }
   #bookmarkBtn {
     display: block; width: calc(100% - 32px); margin: 14px 16px; padding: 26px;
     font: inherit; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
@@ -36,8 +48,20 @@
     <span id="name">joining…</span>
     <span id="state"><span class="pip" id="pip"></span><span id="stateText">connecting</span></span>
   </div>
-  <video id="preview" autoplay playsinline muted></video>
-  <button id="bookmarkBtn">BOOKMARK</button>
+  <div id="stage">
+    <video id="preview" autoplay playsinline muted></video>
+    <!--
+      A camera cannot answer a bookmark well until it is holding footage from
+      before the tap, so say so plainly rather than accepting a tap that would
+      produce a poor clip.
+    -->
+    <div id="warmup">
+      <div id="warmupTitle">Getting ready…</div>
+      <div id="warmupBar"><div id="warmupFill"></div></div>
+      <div id="warmupText">waiting for the camera</div>
+    </div>
+  </div>
+  <button id="bookmarkBtn" disabled>BOOKMARK</button>
   <div id="hint">
     Keep this page open. <span id="held"></span>
   </div>

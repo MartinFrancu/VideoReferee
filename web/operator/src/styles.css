@@ -6,6 +6,8 @@
   --faded: #8fa1ae;
   --live: #4bbf73;
   --dead: #d9534f;
+  /* Filming, but not yet trustworthy — deliberately neither green nor red. */
+  --warm: #d8a13a;
   --accent: #45bec9;
 }
 * { box-sizing: border-box; }

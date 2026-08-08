@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  computed,
   effect,
   inject,
   input,
@@ -24,13 +25,21 @@ import type { Angle } from './hub';
         @if (lead()) {
           <span class="badge">lead</span>
         }
-        @if (angle().status === 'pending') {
-          <span class="note">still arriving…</span>
-        } @else if (beyondFootage()) {
-          <span class="note gap">no footage this far</span>
+        @if (hidden(); as reason) {
+          <span class="note" [class.gap]="beyondFootage()">{{ reason }}</span>
         }
       </figcaption>
-      <video #video playsinline preload="auto" [muted]="!lead()" (loadedmetadata)="onMetadata()" (durationchange)="measure()"></video>
+      <div class="stage">
+        <video #video playsinline preload="auto" [muted]="!lead()" (loadedmetadata)="onMetadata()" (durationchange)="measure()"></video>
+        <!--
+          Whenever this tile is not showing the instant that was asked for, cover
+          it. The frame underneath is real footage from the right camera, just
+          from the wrong moment — which is the most misleading thing it could be.
+        -->
+        @if (hidden(); as reason) {
+          <div class="veil" data-testid="veil">{{ reason }}</div>
+        }
+      </div>
     </figure>
   `,
   styles: `
@@ -64,19 +73,48 @@ import type { Angle } from './hub';
     }
     .note { margin-left: auto; font-size: 12px; color: var(--faded); }
     .note.gap { color: var(--dead); }
+    .stage { position: relative; }
     video { display: block; width: 100%; background: #000; aspect-ratio: 4 / 3; }
+    .veil {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--faded);
+      background: #000;
+    }
   `,
 })
 export class ReviewTile {
   readonly angle = input.required<Angle>();
   readonly name = input.required<string>();
   readonly lead = input(false);
+  /** Someone is dragging the slider on another tile, so this one is stale. */
+  readonly following = input(false);
 
   readonly chosen = output<void>();
   /** How far either side of the bookmark this clip can actually go. */
   readonly spanKnown = output<{ backMs: number; forwardMs: number }>();
 
   protected readonly beyondFootage = signal(false);
+
+  /**
+   * Why this tile is not worth looking at right now, or null if it is.
+   *
+   * All three cases share one failure: the tile would otherwise show a real
+   * frame from the right camera at the wrong moment, and nothing on screen
+   * would say so. Two angles that appear to disagree because one of them is
+   * simply stale is exactly the confusion this is here to prevent.
+   */
+  protected readonly hidden = computed<string | null>(() => {
+    if (this.angle().status === 'pending') return 'still arriving…';
+    if (this.following()) return 'release the slider to bring this angle here';
+    if (this.beyondFootage()) return 'no footage this far';
+    return null;
+  });
 
   private readonly videoRef = viewChild.required<ElementRef<HTMLVideoElement>>("video");
   readonly #destroyRef = inject(DestroyRef);

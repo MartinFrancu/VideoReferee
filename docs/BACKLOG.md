@@ -89,31 +89,31 @@ uncertainty exceeds what review needs should say so, not be silently trusted.
 This is the smallest change on this page and it is the one that would have caught
 observation 1 while it was happening.
 
-### The camera warm-up, made visible
+### ~~The camera warm-up, made visible~~ — done
 
-*(user request: "if some 20s of recording is needed to start, lets add loader on
-the cam and probably show the cam as loading in the hub")*
+The phone covers its preview with a progress bar and a countdown until the ring
+holds `WARM_UP_MS` (20 s), keeps BOOKMARK disabled until then, and the hub shows
+the same camera amber with "warming up — ready in Ns". The natural operator move
+— add cameras, immediately bookmark — is now refused rather than silently
+producing the worst clip.
 
-Not only a nicety — the same clock. A camera is genuinely not ready for a while
-after joining: the ring is filling, and both estimates above are still
-converging. The operator has no way to know that, so the natural thing to do —
-add cameras, immediately bookmark — is the worst case. Show the warm-up on the
-phone and on the hub, and derive "ready" from the actual estimates rather than a
-fixed timer.
+What is still a stand-in: readiness is measured by buffered footage alone. The
+number is chosen so the clock estimate has also gathered its full 20 samples by
+then, but that is a coincidence of timing, not a measurement. Once the
+derivation work lands, "ready" should come from the estimates themselves — the
+uncertainty falling below what review needs — rather than from a proxy.
 
-### Stop the review screen lying about what it is showing
+### ~~Stop the review screen lying about what it is showing~~ — done
 
-*(user request: "when slider is moving (or we are out of frames), lets black or
-dim the video")*
+A tile that is not showing the instant that was asked for is now covered by a
+black veil naming the reason: "release the slider to bring this angle here"
+while another tile is being dragged, "no footage this far" past a clip's end,
+"still arriving…" before it lands. The lead is never covered.
 
-While dragging, only the lead tile moves; the others hold a stale frame that
-looks like current footage. Beyond a clip's footage, the tile shows the nearest
-frame with a small text note that is easy to miss. Both cases present a frame
-that is not the requested instant *as if it were* — which is precisely the
-failure mode being hunted. Dim or black them.
-
-This is UI polish that is also instrumentation, which is why it sits in P0 rather
-than with the rest of the polish.
+The point was never tidiness. All three cases previously showed a real frame,
+from the right camera, at the wrong moment, with nothing on screen saying so —
+so two angles that merely disagreed about *when* looked like two angles that
+disagreed about *what happened*. That is the exact confusion being hunted.
 
 ### Remove start/end bout
 

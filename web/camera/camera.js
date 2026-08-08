@@ -14,6 +14,8 @@ const CHUNK_MS = 250;
  */
 const POST_ROLL_WAIT_MS = 1500;
 const STATUS_INTERVAL_MS = 1000;
+/** Mirrors WARM_UP_MS in src/core/protocol.ts. */
+const WARM_UP_MS = 20_000;
 
 const nameEl = document.getElementById('name');
 const pipEl = document.getElementById('pip');
@@ -22,6 +24,9 @@ const logEl = document.getElementById('log');
 const previewEl = document.getElementById('preview');
 const bookmarkBtn = document.getElementById('bookmarkBtn');
 const heldEl = document.getElementById('held');
+const warmupEl = document.getElementById('warmup');
+const warmupFillEl = document.getElementById('warmupFill');
+const warmupTextEl = document.getElementById('warmupText');
 
 const token = new URLSearchParams(location.search).get('t');
 const ring = new ChunkRing();
@@ -34,9 +39,11 @@ function log(message) {
   logEl.textContent = `${line}\n${logEl.textContent}`.split('\n').slice(0, 40).join('\n');
 }
 
-function setState(text, live) {
+/** `tone` is 'live', 'warm' (filming but not ready yet) or nothing at all. */
+function setState(text, tone) {
   stateTextEl.textContent = text;
-  pipEl.classList.toggle('live', Boolean(live));
+  pipEl.classList.toggle('live', tone === 'live');
+  pipEl.classList.toggle('warm', tone === 'warm');
 }
 
 function send(message) {
@@ -77,7 +84,7 @@ async function startRecording() {
   // The hub can only cut WebM. Fail loudly rather than fill its disk with clips
   // that will never decode.
   if (recorder.mimeType && !/webm/i.test(recorder.mimeType)) {
-    setState(`cannot record ${recorder.mimeType}`, false);
+    setState(`cannot record ${recorder.mimeType}`);
     log(`This browser records ${recorder.mimeType}, which the hub cannot cut yet.`);
     return;
   }
@@ -96,13 +103,45 @@ async function startRecording() {
   recorder.onerror = (event) => log(`recorder error: ${event.error?.message ?? event}`);
 
   recorder.start(CHUNK_MS);
-  setState('recording', true);
+  setState('warming up', 'warm');
+  warmupTextEl.textContent = 'buffering footage';
 
   setInterval(() => {
     const held = ring.heldMs();
     heldEl.textContent = `${(held / 1000).toFixed(0)}s buffered`;
     send({ type: 'recording', heldMs: held });
+    showWarmUp(held);
   }, STATUS_INTERVAL_MS);
+}
+
+/** True once this camera holds enough footage to answer a bookmark properly. */
+let ready = false;
+
+/**
+ * Hold the tap until there is footage behind it.
+ *
+ * A bookmark asks for the moment *and what led up to it*, so a camera that has
+ * only just started has nothing worth sending. The clock estimate is at its
+ * weakest then too. Rather than accept a tap that would produce a poor clip,
+ * show what is missing and how long it will take.
+ */
+function showWarmUp(heldMs) {
+  if (ready) return;
+
+  const fraction = Math.min(1, heldMs / WARM_UP_MS);
+  warmupFillEl.style.width = `${Math.round(fraction * 100)}%`;
+
+  if (heldMs < WARM_UP_MS) {
+    const remaining = Math.ceil((WARM_UP_MS - heldMs) / 1000);
+    warmupTextEl.textContent = `ready in ${remaining}s`;
+    return;
+  }
+
+  ready = true;
+  warmupEl.hidden = true;
+  bookmarkBtn.disabled = false;
+  setState('recording', 'live');
+  log('ready — enough footage buffered to answer a bookmark');
 }
 
 // -------------------------------------------------------------- bookmark ----
@@ -146,12 +185,12 @@ function connect() {
   socket = new WebSocket(`wss://${location.host}/camera`);
 
   socket.addEventListener('open', () => {
-    setState('joining', false);
+    setState('joining');
     send({ type: 'hello', token });
   });
 
   socket.addEventListener('close', () => {
-    setState('reconnecting', false);
+    setState('reconnecting');
     setTimeout(connect, 1500);
   });
 
@@ -163,14 +202,14 @@ function connect() {
       nameEl.textContent = message.name;
       log(`joined as "${message.name}"`);
       startRecording().catch((error) => {
-        setState('camera unavailable', false);
+        setState('camera unavailable');
         log(`camera error: ${error.message}`);
       });
       return;
     }
 
     if (message.type === 'rejected') {
-      setState(message.reason, false);
+      setState(message.reason);
       log(`refused: ${message.reason}`);
       return;
     }
@@ -195,7 +234,7 @@ function connect() {
 }
 
 if (!token) {
-  setState('no join code', false);
+  setState('no join code');
   nameEl.textContent = 'not enrolled';
   log('This link has no join code. Add a camera on the operator screen and scan its QR.');
 } else {

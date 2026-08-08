@@ -14,6 +14,14 @@ export interface Camera {
 
 export type BoutPhase = 'idle' | 'recording' | 'paused';
 
+/** Mirrors WARM_UP_MS in src/core/protocol.ts. */
+export const WARM_UP_MS = 20_000;
+
+/** A camera that is live but not yet holding enough footage to answer well. */
+export function isWarmingUp(camera: Camera): boolean {
+  return camera.live && (camera.heldMs ?? 0) < WARM_UP_MS;
+}
+
 /** Mirrors Angle and Bookmark in src/core/bookmarks.ts. */
 export interface Angle {
   cameraId: string;

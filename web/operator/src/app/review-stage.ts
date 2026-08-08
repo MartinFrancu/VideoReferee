@@ -63,6 +63,7 @@ const NUDGE_MS = 15;
           [angle]="angle"
           [name]="nameFor(angle.cameraId)"
           [lead]="angle.cameraId === leadId()"
+          [following]="dragging() && angle.cameraId !== leadId()"
           (chosen)="leadId.set(angle.cameraId)"
           (spanKnown)="noteSpan(angle.cameraId, $event)"
         />
@@ -106,6 +107,8 @@ export class ReviewStage {
   protected readonly leadId = signal<string | null>(null);
   protected readonly rate = signal(1);
   protected readonly playing = signal(false);
+  /** True between the first drag of the slider and letting go of it. */
+  protected readonly dragging = signal(false);
 
   private readonly tiles = viewChildren(ReviewTile);
   /** What each clip can reach, learned once its metadata is in. */
@@ -164,11 +167,13 @@ export class ReviewStage {
    */
   protected scrubLead(relativeMs: number): void {
     this.pause();
+    this.dragging.set(true);
     this.relativeMs.set(relativeMs);
     this.#lead()?.seekTo(relativeMs);
   }
 
   protected jumpEveryone(relativeMs: number): void {
+    this.dragging.set(false);
     this.relativeMs.set(relativeMs);
     for (const tile of this.tiles()) tile.seekTo(relativeMs);
   }

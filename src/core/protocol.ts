@@ -50,6 +50,18 @@ export const PRE_ROLL_MS = 1500;
 export const POST_ROLL_MS = 1000;
 
 /**
+ * How much footage a camera holds before it is treated as ready.
+ *
+ * Two things converge on the same number. The ring is filling toward its 25 s
+ * window, and — at one ping a second — the hub is gathering the 20 samples
+ * `estimateClock` keeps. Both estimates a clip depends on take the *minimum* of
+ * their samples, so both are at their worst in the first seconds and improve as
+ * samples accumulate. A bookmark taken before then is the one likely to be
+ * misaligned, which is why this is shown rather than left implicit.
+ */
+export const WARM_UP_MS = 20_000;
+
+/**
  * A camera's upload: a small JSON header, then the pinned prefix, then the ring.
  *
  * Multipart would need a parser on the hub for no benefit — the two byte runs
