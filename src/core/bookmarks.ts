@@ -40,16 +40,7 @@ export interface Bookmark {
   readonly resolution: Resolution;
 }
 
-/**
- * Still waiting on footage from at least one camera.
- *
- * A fact about the angles and nothing else. It says nothing about whether the
- * referee has decided — a clip may never come and the call can still be made —
- * and how the two are shown together is a question for whoever is drawing.
- */
-export function isGathering(bookmark: Pick<Bookmark, 'angles'>): boolean {
-  return bookmark.angles.some((angle) => angle.status === 'pending');
-}
+
 
 export class BookmarkLedger {
   readonly #bookmarks = new Map<
@@ -91,18 +82,19 @@ export class BookmarkLedger {
   }
 
   /**
-   * Sweep away everything reviewed and left alone, and say how many.
+   * Decide every bookmark still undecided, and say how many.
    *
-   * Two conditions, both plainly stated: undecided, and not still gathering. A
-   * bookmark whose footage has not arrived cannot have been reviewed, so a bulk
-   * action would bury it unseen — which is a property of *this action*, not of
-   * the bookmark. Resolving one by hand is unaffected.
+   * Every one, including those still waiting on footage. This is the button for
+   * drawing a line under a passage of fighting: the first decisive action gets
+   * its call and the rest stop mattering, so waiting on a phone that may have
+   * died would hold up the only thing the referee wants to do — move on. A clip
+   * that turns up afterwards attaches to a bookmark already marked, which is
+   * harmless.
    */
   resolveAllUnresolved(resolution: Resolution): number {
     let swept = 0;
     for (const bookmark of this.#bookmarks.values()) {
-      const angles = [...bookmark.angles.values()];
-      if (bookmark.resolution !== 'unresolved' || isGathering({ angles })) continue;
+      if (bookmark.resolution !== 'unresolved') continue;
       bookmark.resolution = resolution;
       swept += 1;
     }

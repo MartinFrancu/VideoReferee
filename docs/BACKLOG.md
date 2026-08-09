@@ -193,12 +193,6 @@ join QR back once the dialog is closed.
 all bookmarks*, behind a confirmation). Removing one at a time is not, and is the
 likelier need once bookmarks get names.
 
-**Bookmarks that never complete.** A camera that dies mid-upload leaves its
-bookmark gathering forever, and the sweep skips those by design, so they pile up
-unresolved. Resolving one by hand works; there is just no bulk answer for them.
-Wants a way to give up on an angle — related to *Upload queue with retry* below,
-since the honest fix is knowing whether a clip is coming at all. **Needs use.**
-
 **What the colours mean.** A bookmark can now be resolved red, blue, purple or
 done, and nothing anywhere attaches meaning to those — they are colours, stored
 as colours. Presumably red and blue are the two fighters and purple is a double,

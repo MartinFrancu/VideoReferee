@@ -13,7 +13,7 @@ import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { BookmarkList } from './bookmark-list';
 import { CameraCard } from './camera-card';
 import { ReviewStage } from './review-stage';
-import { Hub, isGathering, type NewCamera } from './hub';
+import { Hub, type NewCamera } from './hub';
 
 @Component({
   selector: 'app-root',
@@ -37,15 +37,9 @@ export class App {
   protected readonly reviewing = computed(() =>
     this.hub.bookmarks().find((bookmark) => bookmark.id === this.selectedBookmark()) ?? null
   );
-  /**
-   * How many the sweep would take: undecided, and with their footage in. The
-   * same two conditions the hub applies, so the count matches what happens.
-   */
+  /** How many the sweep would take: every undecided one, footage or not. */
   protected readonly unresolvedCount = computed(
-    () =>
-      this.hub.bookmarks().filter(
-        (bookmark) => bookmark.resolution === 'unresolved' && !isGathering(bookmark)
-      ).length
+    () => this.hub.bookmarks().filter((bookmark) => bookmark.resolution === 'unresolved').length
   );
 
   protected readonly invited = signal<NewCamera | null>(null);

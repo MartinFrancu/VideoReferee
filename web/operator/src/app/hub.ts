@@ -38,7 +38,7 @@ export function isWarmingUp(camera: Camera, warmUpMs: number): boolean {
 /** Mirrors Resolution in src/core/bookmarks.ts. */
 export type Resolution = 'unresolved' | 'red' | 'blue' | 'purple' | 'done';
 
-/** Mirrors isGathering in src/core/bookmarks.ts: a fact about the angles alone. */
+/** Still waiting on footage from at least one camera. Only ever a display concern. */
 export function isGathering(bookmark: Bookmark): boolean {
   return bookmark.angles.some((angle) => angle.status === 'pending');
 }
