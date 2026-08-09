@@ -5,6 +5,10 @@ description: The TDD working agreement for this repo — red/green/refactor disc
 
 # TDD in this repo
 
+Sits inside the chunk scheme — see the `chunks` skill for which of R/B/D a piece
+of work is, and what tests are expected to do in each. This file is the loop
+used within one.
+
 Based on [tdd.mooc.fi](https://tdd.mooc.fi/). The rules there are written for a
 human who feels friction. An agent does not feel friction, so this file adds the
 checkpoints that make the friction visible anyway.
