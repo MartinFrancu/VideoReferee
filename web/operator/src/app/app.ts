@@ -71,9 +71,12 @@ export class App {
 
     this.notice.set({ text: `Loading ${file.name}…`, bad: false });
     try {
-      await this.hub.loadState(file);
+      const { warning } = await this.hub.loadState(file);
       this.selectedBookmark.set(null);
-      this.notice.set({ text: `Loaded ${file.name}`, bad: false });
+      // The build that wrote the file is worth saying while the file is being
+      // opened, not left to be discovered by behaviour that changed since.
+      const loaded = `Loaded ${file.name}`;
+      this.notice.set({ text: warning ? `${loaded} — ${warning}` : loaded, bad: false });
     } catch (error: unknown) {
       // The hub says what is wrong with the file; it is more use than "failed".
       const reason =

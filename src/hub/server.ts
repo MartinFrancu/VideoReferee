@@ -25,7 +25,13 @@ import {
   type UploadHeader,
 } from '../core/protocol.js';
 import { readConfig } from '../core/config.js';
-import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '../core/state.js';
+import {
+  STATE_FORMAT,
+  isSafeClipName,
+  parseSavedState,
+  versionNotice,
+  type SavedState,
+} from '../core/state.js';
 import { localAddresses } from './network.js';
 import { joinHost, uncoveredAddresses } from './reachability.js';
 import { versionFrom } from './version.js';
@@ -231,7 +237,7 @@ function captureState(): SavedState {
  * that were filming somewhere else, and a roster that mixes the two would show
  * bookmarks against cameras that never took them.
  */
-function loadState(state: SavedState): void {
+function loadState(state: SavedState): string | null {
   for (const clip of state.clips) {
     writeFileSync(join(CLIPS_DIR, clip.name), Buffer.from(clip.base64, 'base64'));
   }
@@ -250,6 +256,10 @@ function loadState(state: SavedState): void {
     `loaded ${state.bookmarks.length} bookmark(s), ${state.cameras.length} camera(s), ` +
       `${state.clips.length} clip(s) saved at ${state.savedAt} by version ${state.version}`
   );
+
+  const notice = versionNotice({ savedVersion: state.version, hubVersion: VERSION });
+  if (notice) console.log(`  ${notice}`);
+  return notice;
 }
 
 /** End of bout: the marks go, the phones stay enrolled. */
@@ -384,8 +394,8 @@ async function handle(
 
   if (req.method === 'POST' && url.pathname === '/api/state') {
     try {
-      loadState(parseSavedState(await readJson(req)));
-      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+      const warning = loadState(parseSavedState(await readJson(req)));
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, warning }));
     } catch (error) {
       // The file came from outside, so a bad one is expected rather than a fault.
       const reason = error instanceof Error ? error.message : 'could not read that file';

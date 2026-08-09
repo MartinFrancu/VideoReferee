@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from './state.js';
+import {
+  STATE_FORMAT,
+  isSafeClipName,
+  parseSavedState,
+  versionNotice,
+  type SavedState,
+} from './state.js';
 
 const valid: SavedState = {
   format: STATE_FORMAT,
@@ -163,5 +169,29 @@ describe('isSafeClipName', () => {
     ]) {
       expect(isSafeClipName(name), name).toBe(false);
     }
+  });
+});
+
+describe('versionNotice', () => {
+  it('says nothing when the file came from this build', () => {
+    expect(versionNotice({ savedVersion: '0.0.3', hubVersion: '0.0.3' })).toBeNull();
+  });
+
+  /**
+   * The point of the whole save/load feature is handing a file to someone else,
+   * which means the two ends are often different builds. Saying so up front
+   * beats puzzling over behaviour that changed between them.
+   */
+  it('names both builds when they differ', () => {
+    const notice = versionNotice({ savedVersion: '0.0.2', hubVersion: '0.0.3' });
+    expect(notice).toContain('0.0.2');
+    expect(notice).toContain('0.0.3');
+  });
+
+  it('says so plainly for a file from before versions were recorded', () => {
+    const notice = versionNotice({ savedVersion: 'unknown', hubVersion: '0.0.3' });
+    expect(notice).toMatch(/before/i);
+    expect(notice).toContain('0.0.3');
+    expect(notice).not.toContain('unknown');
   });
 });

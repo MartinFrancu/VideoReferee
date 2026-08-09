@@ -154,11 +154,10 @@ export class Hub {
    * into filenames — so parsing it twice would only move where a bad file is
    * first noticed.
    */
-  async loadState(file: File): Promise<void> {
-    await firstValueFrom(
-      this.#http.post('/api/state', await file.text(), {
+  async loadState(file: File): Promise<{ warning: string | null }> {
+    return firstValueFrom(
+      this.#http.post<{ warning: string | null }>('/api/state', await file.text(), {
         headers: { 'Content-Type': 'application/json' },
-        responseType: 'text',
       })
     );
   }

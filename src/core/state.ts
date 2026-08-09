@@ -69,6 +69,28 @@ function asString(value: unknown, field: string): string {
   return typeof value === 'string' ? value : fail(`${field} is missing`);
 }
 
+/**
+ * Whether the operator should be told the file came from a different build.
+ *
+ * Saving exists so a session can be handed to someone else, which means the two
+ * ends are routinely different builds. Naming both beats puzzling over
+ * behaviour that changed between them — so this is said out loud rather than
+ * left to be noticed.
+ */
+export function versionNotice({
+  savedVersion,
+  hubVersion,
+}: {
+  readonly savedVersion: string;
+  readonly hubVersion: string;
+}): string | null {
+  if (savedVersion === hubVersion) return null;
+  if (savedVersion === 'unknown') {
+    return `That file was saved before versions were recorded; this hub is ${hubVersion}.`;
+  }
+  return `That file was saved by version ${savedVersion}; this hub is ${hubVersion}.`;
+}
+
 /** Read a saved state, or throw with a message worth showing to the operator. */
 export function parseSavedState(input: unknown): SavedState {
   const state = asRecord(input, 'That file is not a saved state.');

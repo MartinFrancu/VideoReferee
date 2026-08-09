@@ -8,6 +8,12 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.4
+
+- **D** — Loading a saved session says so when it came from a different build,
+  naming both, on the operator screen and in the hub console. Silent when they
+  match, and specific about a file written before versions were recorded.
+
 ## 0.0.3
 
 - **D** — Show which build is running, everywhere it might be asked: the
