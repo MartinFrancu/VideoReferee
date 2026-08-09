@@ -3,6 +3,7 @@
 // Deliberately thin. Everything that could be wrong — clock offsets, where a
 // clip starts, what a bookmark means — is computed in src/core, where it is
 // covered by tests. This file moves bytes and holds state.
+import { X509Certificate } from 'node:crypto';
 import { createServer } from 'node:https';
 import { readFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -26,6 +27,7 @@ import {
 import { readConfig } from '../core/config.js';
 import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '../core/state.js';
 import { localAddresses } from './network.js';
+import { joinHost, uncoveredAddresses } from './reachability.js';
 import { resolveStaticPath } from './static-path.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -321,7 +323,8 @@ async function handle(
     const body = (await readJson(req)) as { name?: string };
     const name = (body.name ?? '').trim() || 'camera';
     const { id, token } = cameras.invite(name, sessionNow());
-    const joinUrl = `https://${req.headers.host}/camera/?t=${token}`;
+    const host = joinHost({ requestHost: req.headers.host, addresses: localAddresses(), port: PORT });
+    const joinUrl = `https://${host}/camera/?t=${token}`;
     const qr = await QRCode.toString(joinUrl, { type: 'svg', margin: 1, width: 260 });
     tellOperators();
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -509,6 +512,30 @@ setInterval(() => {
   tellOperators();
 }, config.network.pingIntervalMs);
 
+/**
+ * Say so when this laptop's address is not one the certificate names.
+ *
+ * A phone files its "accept this certificate" decision under the address it
+ * visited, so on a new network every phone asks again. Harmless once you know
+ * why — bewildering when you accepted it last week and it looks like the tool
+ * has broken.
+ */
+function warnAboutCertificateCoverage(addresses: readonly string[]): void {
+  let subjectAltName: string | undefined;
+  try {
+    subjectAltName = new X509Certificate(readFileSync(join(CERT_DIR, 'cert.pem'))).subjectAltName;
+  } catch {
+    return; // Unreadable is not the same as mismatched.
+  }
+
+  const uncovered = uncoveredAddresses({ addresses, subjectAltName });
+  if (uncovered.length === 0) return;
+
+  console.log(`\n  Note: the certificate does not cover ${uncovered.join(', ')}.`);
+  console.log('  Phones will show that warning again even if they accepted it before.');
+  console.log('  Run `npm run gen-cert` and restart to include this network.');
+}
+
 server.listen(PORT, () => {
   const addresses = localAddresses();
   console.log(`\n  VideoReferee hub — bout phase: ${boutPhase}\n`);
@@ -524,5 +551,7 @@ server.listen(PORT, () => {
     for (const [key, value] of Object.entries(settings)) console.log(`      ${key.padEnd(16)} ${value}`);
   }
   console.log(`\n  Cameras join by scanning a QR from the operator screen.`);
-  console.log(`  First visit on each device shows a certificate warning — accept it once.\n`);
+  console.log(`  First visit on each device shows a certificate warning — accept it once.`);
+  warnAboutCertificateCoverage(addresses);
+  console.log('');
 });

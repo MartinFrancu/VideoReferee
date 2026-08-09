@@ -232,6 +232,15 @@ glance.
 kills the stream on other devices, that is the signal to wrap the camera page in
 Capacitor rather than fight the browser.
 
+**A certificate that survives changing networks.** Accepting the warning is
+filed by the phone against the address it visited, so a new venue means every
+phone accepts again. The hub now says so at startup rather than letting it
+surprise you, but removing the warning outright needs either a local CA
+installed on each phone — more one-time fiddling than the warning it replaces —
+or a real certificate for a domain, which needs a domain and a hostname that
+resolves to the laptop's LAN address. Worth revisiting only if the tool goes
+beyond a known set of phones.
+
 **A walkthrough that runs on Windows.** The hub is developed on Linux and run at
 the tournament on Windows, and the first thing that gap produced was a hub that
 died on its first page load (see TESTLIST). Unit tests now reach Windows by
