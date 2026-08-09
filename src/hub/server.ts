@@ -28,6 +28,7 @@ import { readConfig } from '../core/config.js';
 import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '../core/state.js';
 import { localAddresses } from './network.js';
 import { joinHost, uncoveredAddresses } from './reachability.js';
+import { versionFrom } from './version.js';
 import { resolveStaticPath } from './static-path.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
@@ -62,6 +63,15 @@ function loadConfig() {
 }
 
 const config = loadConfig();
+
+/** One source for the version: the manifest. Never a second copy to forget. */
+const VERSION = (() => {
+  try {
+    return versionFrom(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')));
+  } catch {
+    return 'unknown';
+  }
+})();
 
 if (!existsSync(join(CERT_DIR, 'cert.pem'))) {
   console.error('No certificate yet. Run `npm run gen-cert` first.');
@@ -206,6 +216,7 @@ function captureState(): SavedState {
   return {
     format: STATE_FORMAT,
     savedAt: new Date().toISOString(),
+    version: VERSION,
     boutPhase,
     cameras: cameraViews(),
     bookmarks: bookmarks.list(),
@@ -237,7 +248,7 @@ function loadState(state: SavedState): void {
 
   console.log(
     `loaded ${state.bookmarks.length} bookmark(s), ${state.cameras.length} camera(s), ` +
-      `${state.clips.length} clip(s) saved at ${state.savedAt}`
+      `${state.clips.length} clip(s) saved at ${state.savedAt} by version ${state.version}`
   );
 }
 
@@ -318,6 +329,15 @@ async function handle(
   res: import('node:http').ServerResponse
 ): Promise<void> {
   const url = new URL(req.url ?? '/', `https://${req.headers.host}`);
+  // On everything, so the version is readable from a browser's network tab even
+  // when whatever is being debugged never renders.
+  res.setHeader('X-VideoReferee-Version', VERSION);
+
+  if (req.method === 'GET' && url.pathname === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ version: VERSION }));
+    return;
+  }
 
   if (req.method === 'POST' && url.pathname === '/api/cameras') {
     const body = (await readJson(req)) as { name?: string };
@@ -565,7 +585,7 @@ function warnAboutCertificateCoverage(addresses: readonly string[]): void {
 
 server.listen(PORT, () => {
   const addresses = localAddresses();
-  console.log(`\n  VideoReferee hub — bout phase: ${boutPhase}\n`);
+  console.log(`\n  VideoReferee ${VERSION} — bout phase: ${boutPhase}\n`);
   if (addresses.length === 0) {
     console.log('  No local network address found. Are you on Wi-Fi?');
   }

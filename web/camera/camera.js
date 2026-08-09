@@ -28,6 +28,7 @@ const heldEl = document.getElementById('held');
 const warmupEl = document.getElementById('warmup');
 const warmupFillEl = document.getElementById('warmupFill');
 const warmupTextEl = document.getElementById('warmupText');
+const versionEl = document.getElementById('version');
 
 const token = new URLSearchParams(location.search).get('t');
 let ring = new ChunkRing();
@@ -249,6 +250,17 @@ async function loadConfig() {
     log(`could not read settings from the hub (${error.message}) — using defaults`);
   }
   ring = new ChunkRing({ windowMs: config.camera.ringWindowMs });
+
+  // Which build this phone is talking to. First line in the log, so a
+  // screenshot of a misbehaving phone always carries it.
+  try {
+    const response = await fetch('/api/version');
+    const version = response.ok ? (await response.json()).version : 'unknown';
+    versionEl.textContent = `v${version}`;
+    log(`VideoReferee ${version}`);
+  } catch {
+    versionEl.textContent = '';
+  }
 }
 
 if (!token) {

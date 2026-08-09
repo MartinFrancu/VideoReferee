@@ -107,6 +107,8 @@ export class Hub {
   readonly connected = signal(false);
   /** Settings live on the hub, in config.json; this screen only reads them. */
   readonly config = signal<Config>(FALLBACK_CONFIG);
+  /** Which build the hub is running. Asked for rather than compiled in. */
+  readonly version = signal('…');
 
   readonly #http = inject(HttpClient);
 
@@ -115,6 +117,9 @@ export class Hub {
     void firstValueFrom(this.#http.get<Config>('/api/config'))
       .then((config) => this.config.set(config))
       .catch(() => {});
+    void firstValueFrom(this.#http.get<{ version: string }>('/api/version'))
+      .then(({ version }) => this.version.set(version))
+      .catch(() => this.version.set('unknown'));
   }
 
   #connect(): void {

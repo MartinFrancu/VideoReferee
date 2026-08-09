@@ -7,6 +7,14 @@ header {
   border-bottom: 1px solid var(--rule);
 }
 h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+/* Present but never competing for attention — until someone needs to ask. */
+.version {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--faded);
+  opacity: 0.75;
+  margin-left: -8px;
+}
 .phase, .offline {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 11px;

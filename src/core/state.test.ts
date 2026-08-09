@@ -5,6 +5,7 @@ import { STATE_FORMAT, isSafeClipName, parseSavedState, type SavedState } from '
 const valid: SavedState = {
   format: STATE_FORMAT,
   savedAt: '2026-08-08T20:14:33.000Z',
+  version: '0.0.2',
   boutPhase: 'recording',
   cameras: [
     { id: 'cam-1', name: 'mike', live: true, everJoined: true, heldMs: 20_000, syncUncertaintyMs: 4 },
@@ -36,6 +37,7 @@ const valid: SavedState = {
 interface Draft {
   format: number;
   savedAt: string;
+  version?: string;
   boutPhase: string;
   cameras: Record<string, unknown>[];
   bookmarks: {
@@ -56,6 +58,7 @@ describe('parseSavedState', () => {
     expect(read.bookmarks).toEqual(valid.bookmarks);
     expect(read.clips).toEqual(valid.clips);
     expect(read.savedAt).toBe(valid.savedAt);
+    expect(read.version).toBe('0.0.2');
     expect(read.boutPhase).toBe('recording');
   });
 
@@ -68,6 +71,17 @@ describe('parseSavedState', () => {
       live: false,
       everJoined: true,
     });
+  });
+
+  /**
+   * Which build wrote it — the first question worth asking of a file someone
+   * sends you. A file from before it was recorded simply cannot say.
+   */
+  it('says which version wrote the file, or admits it does not know', () => {
+    const before = clone();
+    delete before.version;
+    expect(parseSavedState(before).version).toBe('unknown');
+    expect(parseSavedState({ ...clone(), version: 7 }).version).toBe('unknown');
   });
 
   // A file written before bookmarks could be resolved has none of these.

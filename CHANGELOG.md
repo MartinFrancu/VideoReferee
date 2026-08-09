@@ -8,6 +8,14 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.3
+
+- **D** — Show which build is running, everywhere it might be asked: the
+  operator header, the camera's bar and the first line of its log, the hub's
+  startup banner, every saved session, and an `X-VideoReferee-Version` header on
+  every response. Read from `package.json` alone, so bumping the version stays
+  one edit.
+
 ## 0.0.2
 
 - **B** — Version bumps move the patch number, the third one, not the minor. The

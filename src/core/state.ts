@@ -25,6 +25,11 @@ export interface SavedClip {
 export interface SavedState {
   readonly format: number;
   readonly savedAt: string;
+  /**
+   * Which build wrote this — the first question worth asking of a file someone
+   * hands you. "unknown" for a file written before it was recorded.
+   */
+  readonly version: string;
   readonly boutPhase: BoutPhase;
   readonly cameras: readonly CameraView[];
   readonly bookmarks: readonly Bookmark[];
@@ -125,9 +130,11 @@ export function parseSavedState(input: unknown): SavedState {
   });
 
   const phase = state['boutPhase'];
+  const version = state['version'];
   return {
     format,
     savedAt: asString(state['savedAt'], 'savedAt'),
+    version: typeof version === 'string' ? version : 'unknown',
     boutPhase: phase === 'recording' || phase === 'paused' ? phase : 'idle',
     cameras,
     bookmarks: bookmarks as Bookmark[],

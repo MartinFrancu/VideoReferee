@@ -13,6 +13,8 @@
   #bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px;
          border-bottom: 1px solid var(--rule); }
   #name { font-size: 17px; font-weight: 650; }
+  #version { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+             color: var(--faded); opacity: 0.75; }
   #state { margin-left: auto; display: flex; align-items: center; gap: 8px;
            font-size: 13px; color: var(--faded); }
   .pip { width: 9px; height: 9px; border-radius: 50%; background: var(--dead); }
@@ -46,6 +48,7 @@
 <body>
   <div id="bar">
     <span id="name">joining…</span>
+    <span id="version" title="Hub version"></span>
     <span id="state"><span class="pip" id="pip"></span><span id="stateText">connecting</span></span>
   </div>
   <div id="stage">

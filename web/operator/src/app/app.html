@@ -1,5 +1,6 @@
 <header>
   <h1>VideoReferee</h1>
+  <span class="version" data-testid="version" title="Hub version">v{{ hub.version() }}</span>
   <span class="phase" data-testid="phase">{{ hub.phase() }}</span>
   @if (!hub.connected()) {
     <span class="offline">hub unreachable</span>
