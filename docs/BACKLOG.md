@@ -117,12 +117,36 @@ disagreed about *what happened*. That is the exact confusion being hunted.
 
 ### Remove start/end bout
 
-*(user request)*
+*(user request, raised twice)*
 
 Confirmed: it does nothing. The camera page only logs the phase
 (`web/camera/camera.js`), recording runs continuously from join, and no cut
 depends on it. A control that implies state it does not have is worse than no
 control. If point-counting ever arrives it can come back.
+
+The phase label in the header goes with it — it only ever reports what those
+buttons set. A screen name may want that spot instead (see *Split the operator
+screen* below).
+
+### Saving a session fails in the browser
+
+*(user report: "download state has 'connection error'", on a basic hub at
+`https://192.168.1.3:3000/api/state`)*
+
+Save is an `<a href="/api/state" download>`, so the browser fetches it as a
+navigation rather than from inside the page. Reproduced working here only with
+the certificate accepted; the case that matters — a self-signed certificate
+clicked through — cannot be reached from a headless browser, so this is not yet
+diagnosed, only narrowed.
+
+The decisive check is the hub console: `saved state: X.XMB` appears if the hub
+sent it, which puts the failure entirely on the browser's side.
+
+Two properties of the current response are suspicious either way: it carries no
+`Content-Length` (chunked, because `writeHead` flushes before the body is
+known), and it is fetched outside the page. Every other request the page makes
+over that same certificate succeeds, which points at fetching the file in-page
+and handing the browser a Blob instead — which also settles the filename below.
 
 ### The duplicated frame near the bookmark
 
@@ -177,6 +201,42 @@ batch 3, never automated. Needs a decoder, so it belongs at the integration leve
 
 Mostly the user's UI list. Grouped because they share a surface and are best done
 in one pass.
+
+**A README with dumb-proof setup.** *(user request)* Step by step, assuming
+nothing: install, `npm run gen-cert`, build the operator, start the hub, open it
+on the laptop, scan a QR with each phone, accept the certificate warning. The
+repo currently explains its architecture at length and its setup nowhere.
+
+**Split the operator screen into three.** *(user request)* Angle management,
+bookmarks during a bout, and one bookmark's detail. Everything is on one page
+today, which is why the save controls are hard to find and why the review
+screen sits below a camera list nobody is looking at mid-bout. Probably the
+largest single item here, and the one the others hang off.
+
+**Angle management: add a camera, and drop one.** *(user request)* Adding exists
+but lives at the bottom of the page; dropping does not exist at all, so a dead
+phone stays on the list and keeps being asked for clips it will never send.
+
+**Find the save controls.** *(user request: "where are the saving buttons?")*
+They are behind the `⋯` menu, which is evidently too subtle. Either the menu
+needs to look like a menu, or saving belongs on the angle-management screen once
+the split above happens.
+
+**Arrow keys to step frames.** *(user request)* Left back, right forward, with
+hold-to-repeat at `review.holdRepeatMs`. The user's read is that this probably
+replaces hold-to-repeat on the buttons rather than joining it — worth deciding
+before building both.
+
+**Hide a view that cannot reach the current instant.** *(user request, while
+stepping by frame)* Today it is veiled with "no footage this far". The request
+is to hide it outright. Worth checking whether the veil is appearing at all
+during frame stepping, since the report suggests it is not.
+
+**A save-as dialog with a prefilled name.** *(user request)*
+`videoreferee-TIMESTAMP`. The hub already sends that name in
+`Content-Disposition`; what is missing is the browser offering a location. Ties
+directly to the save failure in P0 — fetching in-page and downloading a Blob
+would deliver both.
 
 **Identify which camera is which.** Asked as a question: *is there a way to
 identify a camera for the user?* Nothing today ties a name in the list to a phone
@@ -246,6 +306,15 @@ installed on each phone — more one-time fiddling than the warning it replaces 
 or a real certificate for a domain, which needs a domain and a hostname that
 resolves to the laptop's LAN address. Worth revisiting only if the tool goes
 beyond a known set of phones.
+
+**Docs that still describe the plan rather than the tool.** `docs/build-plan.md`
+lays out milestones M1–M3 that have all been walked, and `docs/TESTLIST.md` has
+an empty `Now` section — both read as forward-looking documents describing work
+that is finished. Their value now is historical (the lessons and design-smell
+sections in TESTLIST are worth keeping either way). `docs/architecture.md`
+predates bookmark resolution and `config.json`, and `docs/review-screen.md`
+predates the veil, hold-to-step and the resolution chips. None of it is wrong
+about intent; all of it is behind on fact.
 
 **A walkthrough that runs on Windows.** The hub is developed on Linux and run at
 the tournament on Windows, and the first thing that gap produced was a hub that

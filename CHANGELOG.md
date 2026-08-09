@@ -8,6 +8,11 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.5
+
+- **R** — Record thirteen items raised after a session with the tool, and audit
+  the docs. No behaviour change.
+
 ## 0.0.4
 
 - **D** — Loading a saved session says so when it came from a different build,
