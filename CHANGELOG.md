@@ -8,8 +8,12 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
-## 0.1.0
+## 0.0.2
 
+- **B** — Version bumps move the patch number, the third one, not the minor. The
+  agreement said "the minor" meaning the last digit; it was read as the middle
+  one and this chunk first appeared as 0.1.0. Nothing ever used that number, so
+  it is folded into 0.0.2 rather than left as a gap.
 - **D** — Adopt one-intention chunks: every change is a refactor, a bugfix or a
   development, never a mix, and each carries an `R:`/`B:`/`D:` commit, a version
   bump and an entry here.

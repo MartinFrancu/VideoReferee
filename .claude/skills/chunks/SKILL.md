@@ -56,8 +56,9 @@ than a chunk of the wrong shape.
 ## Every chunk carries its own paperwork
 
 1. **One commit**, subject starting `R: `, `B: ` or `D: `.
-2. **Bump the minor version** in `package.json`, `package-lock.json`,
-   `web/operator/package.json` and `web/operator/package-lock.json`.
+2. **Bump the patch version** — the third number, `0.0.1` → `0.0.2` — in
+   `package.json`, `package-lock.json`, `web/operator/package.json` and
+   `web/operator/package-lock.json`.
 3. **One entry in `CHANGELOG.md`**, under the new version, marked with the same
    letter.
 
