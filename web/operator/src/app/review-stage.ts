@@ -9,7 +9,7 @@ import {
   viewChildren,
 } from '@angular/core';
 
-import { Hub, type Bookmark, type Camera } from './hub';
+import { Hub, RESOLUTIONS, type Bookmark, type Camera, type Resolution } from './hub';
 import { ReviewTile } from './review-tile';
 
 /** Beyond this the angles are visibly apart, so correct rather than nudge. */
@@ -78,6 +78,23 @@ const NUDGE_MS = 15;
       <span class="readout" data-testid="readout">{{ readout() }}</span>
     </div>
 
+    <!--
+      The decision, right under the footage it is about. A referee reviews and
+      calls it in one motion, so the buttons live here rather than in the list.
+    -->
+    <div class="verdict" data-testid="verdict">
+      <span class="prompt">Resolve as</span>
+      @for (option of resolutions; track option.value) {
+        <button
+          class="chip"
+          [attr.data-resolution]="option.value"
+          [class.chosen]="bookmark().resolution === option.value"
+          [style.--chip]="'var(--state-' + option.value + ')'"
+          (click)="resolve(option.value)"
+        >{{ option.label }}</button>
+      }
+    </div>
+
     <div class="tiles" data-testid="review-tiles">
       @for (angle of angles(); track angle.cameraId) {
         <vr-review-tile
@@ -118,6 +135,18 @@ const NUDGE_MS = 15;
       padding: 5px 8px;
     }
     .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+    .verdict { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 0 16px; }
+    .prompt { font-size: 13px; color: var(--faded); }
+    .chip {
+      font-size: 13px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--chip);
+      background: transparent;
+      color: var(--chip);
+    }
+    /* The chosen one is filled, so the decision is obvious without reading. */
+    .chip.chosen { background: var(--chip); color: #10161c; font-weight: 650; }
   `,
 })
 export class ReviewStage {
@@ -177,6 +206,12 @@ export class ReviewStage {
     const seconds = this.relativeMs() / 1000;
     return `${seconds >= 0 ? '+' : ''}${seconds.toFixed(2)}s`;
   });
+
+  protected readonly resolutions = RESOLUTIONS;
+
+  protected resolve(resolution: Resolution): void {
+    void this.#hub.resolve(this.bookmark().id, resolution);
+  }
 
   protected nameFor(cameraId: string): string {
     return this.cameras().find((camera) => camera.id === cameraId)?.name ?? 'camera';

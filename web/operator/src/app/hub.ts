@@ -35,6 +35,18 @@ export function isWarmingUp(camera: Camera, warmUpMs: number): boolean {
   return camera.live && (camera.heldMs ?? 0) < warmUpMs;
 }
 
+/** Mirrors Resolution and BookmarkState in src/core/bookmarks.ts. */
+export type Resolution = 'unresolved' | 'red' | 'blue' | 'purple' | 'done';
+export type BookmarkState = 'loading' | Resolution;
+
+/** The decisions offered as buttons, in the order they appear. */
+export const RESOLUTIONS: readonly { value: Resolution; label: string }[] = [
+  { value: 'red', label: 'Red' },
+  { value: 'blue', label: 'Blue' },
+  { value: 'purple', label: 'Purple' },
+  { value: 'done', label: 'Done' },
+];
+
 /** Mirrors Angle and Bookmark in src/core/bookmarks.ts. */
 export interface Angle {
   cameraId: string;
@@ -49,6 +61,10 @@ export interface Bookmark {
   sessionMs: number;
   triggeredBy: string;
   angles: Angle[];
+  /** What the referee decided. */
+  resolution: Resolution;
+  /** What to show. Worked out by the hub, never here. */
+  state: BookmarkState;
 }
 
 export interface NewCamera {
@@ -125,6 +141,18 @@ export class Hub {
         responseType: 'text',
       })
     );
+  }
+
+  async resolve(id: string, resolution: Resolution): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/bookmarks/resolve', { id, resolution }));
+  }
+
+  /** Sweep everything reviewed and left alone. Answers how many were swept. */
+  async resolveAllUnresolved(resolution: Resolution): Promise<number> {
+    const { swept } = await firstValueFrom(
+      this.#http.post<{ swept: number }>('/api/bookmarks/resolve', { all: true, resolution })
+    );
+    return swept;
   }
 
   async resetBookmarks(): Promise<void> {

@@ -37,6 +37,11 @@ export class App {
   protected readonly reviewing = computed(() =>
     this.hub.bookmarks().find((bookmark) => bookmark.id === this.selectedBookmark()) ?? null
   );
+  /** How many have been reviewed and left without a decision. */
+  protected readonly unresolvedCount = computed(
+    () => this.hub.bookmarks().filter((bookmark) => bookmark.state === 'unresolved').length
+  );
+
   protected readonly invited = signal<NewCamera | null>(null);
   protected readonly qr = signal<SafeHtml | null>(null);
 
@@ -93,6 +98,11 @@ export class App {
 
   protected cancelReset(): void {
     this.resetDialog()?.nativeElement.close();
+  }
+
+  protected async sweep(): Promise<void> {
+    const swept = await this.hub.resolveAllUnresolved('done');
+    this.notice.set({ text: `Marked ${swept} bookmark${swept === 1 ? '' : 's'} done`, bad: false });
   }
 
   protected dismissNotice(): void {

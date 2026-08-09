@@ -193,6 +193,12 @@ join QR back once the dialog is closed.
 all bookmarks*, behind a confirmation). Removing one at a time is not, and is the
 likelier need once bookmarks get names.
 
+**What the colours mean.** A bookmark can now be resolved red, blue, purple or
+done, and nothing anywhere attaches meaning to those — they are colours, stored
+as colours. Presumably red and blue are the two fighters and purple is a double,
+but that was never said, and guessing would bake a rule in. Naming them is a
+change of label, not of shape, so it can wait for use. **Needs use.**
+
 **Name a bookmark.** The user likes this. Cheap: `Bookmark` already has room.
 
 **Zoom on a paused video.** A referee wants to look closely at a hand. Only

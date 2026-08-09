@@ -8,6 +8,19 @@
   <button class="primary" data-testid="start-bout" (click)="hub.setPhase('recording')">Start bout</button>
   <button data-testid="stop-bout" (click)="hub.setPhase('idle')">Stop</button>
 
+  <!--
+    The working loop: fight, review what was marked, sweep the rest away, fight
+    on. Only bookmarks that have been looked at and left alone are swept.
+  -->
+  <button
+    data-testid="sweep"
+    [disabled]="unresolvedCount() === 0"
+    [title]="unresolvedCount() ? 'Mark every reviewed bookmark done' : 'Nothing waiting for a decision'"
+    (click)="sweep()"
+  >
+    Mark {{ unresolvedCount() }} done
+  </button>
+
   <div class="menu">
     <button
       data-testid="menu-toggle"

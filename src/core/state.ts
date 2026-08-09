@@ -9,7 +9,7 @@
 // email, or a USB stick, and its clip names become filenames on the hub. So
 // everything is checked on the way in, and the errors say what is wrong.
 
-import type { Bookmark } from './bookmarks.js';
+import type { Bookmark, Resolution } from './bookmarks.js';
 import type { BoutPhase, CameraView } from './protocol.js';
 
 /** Bumped when the shape changes in a way an older build could misread. */
@@ -22,12 +22,19 @@ export interface SavedClip {
   readonly base64: string;
 }
 
+/**
+ * A bookmark as it is written to a file: the decision, never the derived state.
+ * Saving `state` would put a second truth in the file, to go stale the moment a
+ * clip is restored alongside it.
+ */
+export type SavedBookmark = Omit<Bookmark, 'state'>;
+
 export interface SavedState {
   readonly format: number;
   readonly savedAt: string;
   readonly boutPhase: BoutPhase;
   readonly cameras: readonly CameraView[];
-  readonly bookmarks: readonly Bookmark[];
+  readonly bookmarks: readonly SavedBookmark[];
   readonly clips: readonly SavedClip[];
 }
 
@@ -90,11 +97,17 @@ export function parseSavedState(input: unknown): SavedState {
       };
     });
 
+    // A file written before bookmarks could be resolved simply has none.
+    const RESOLUTIONS: Resolution[] = ['unresolved', 'red', 'blue', 'purple', 'done'];
+    const given = bookmark['resolution'];
+    const resolution = RESOLUTIONS.find((known) => known === given) ?? 'unresolved';
+
     return {
       id: asString(bookmark['id'], `bookmarks[${index}].id`),
       sessionMs: asNumber(bookmark['sessionMs'], `bookmarks[${index}].sessionMs`),
       triggeredBy: asString(bookmark['triggeredBy'], `bookmarks[${index}].triggeredBy`),
       angles,
+      resolution,
     };
   });
 
@@ -124,7 +137,7 @@ export function parseSavedState(input: unknown): SavedState {
     savedAt: asString(state['savedAt'], 'savedAt'),
     boutPhase: phase === 'recording' || phase === 'paused' ? phase : 'idle',
     cameras,
-    bookmarks: bookmarks as Bookmark[],
+    bookmarks: bookmarks as SavedBookmark[],
     clips,
   };
 }

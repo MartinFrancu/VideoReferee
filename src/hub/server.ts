@@ -13,7 +13,7 @@ import QRCode from 'qrcode';
 import { WebSocketServer, WebSocket } from 'ws';
 
 import { cutClipForBookmark } from '../core/alignment.js';
-import { BookmarkLedger } from '../core/bookmarks.js';
+import { BookmarkLedger, type Resolution } from '../core/bookmarks.js';
 import { CameraRegistry } from '../core/cameras.js';
 import { readClusters, readInitSegment, readVideoTrackNumber } from '../core/media/webm.js';
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
@@ -208,7 +208,8 @@ function captureState(): SavedState {
     savedAt: new Date().toISOString(),
     boutPhase,
     cameras: cameraViews(),
-    bookmarks: bookmarks.list(),
+    // `state` is derived on read, so it is deliberately not written out.
+    bookmarks: bookmarks.list().map(({ state, ...saved }) => saved),
     clips: clipsForState(),
   };
 }
@@ -372,6 +373,33 @@ async function handle(
       console.log(`load rejected: ${reason}`);
       res.writeHead(400, { 'Content-Type': 'text/plain' }).end(reason);
     }
+    return;
+  }
+
+  // What the referee decided: one bookmark, or every one still undecided.
+  if (req.method === 'POST' && url.pathname === '/api/bookmarks/resolve') {
+    const body = (await readJson(req)) as { id?: string; resolution?: Resolution; all?: boolean };
+    const resolution = body.resolution;
+    if (!resolution) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('no resolution given');
+      return;
+    }
+
+    if (body.all) {
+      const swept = bookmarks.resolveAllUnresolved(resolution);
+      console.log(`marked ${swept} bookmark(s) ${resolution}`);
+      tellOperators();
+      res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ swept }));
+      return;
+    }
+
+    if (!body.id) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('no bookmark given');
+      return;
+    }
+    bookmarks.resolve(body.id, resolution);
+    tellOperators();
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
     return;
   }
 

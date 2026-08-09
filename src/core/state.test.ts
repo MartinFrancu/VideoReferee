@@ -14,6 +14,7 @@ const valid: SavedState = {
       id: 'bm-1',
       sessionMs: 1_786_000_000_000,
       triggeredBy: 'mike',
+      resolution: 'red',
       angles: [
         {
           cameraId: 'cam-1',
@@ -37,7 +38,13 @@ interface Draft {
   savedAt: string;
   boutPhase: string;
   cameras: Record<string, unknown>[];
-  bookmarks: { id: string; sessionMs?: number; triggeredBy: string; angles: Record<string, unknown>[] }[];
+  bookmarks: {
+    id: string;
+    sessionMs?: number;
+    triggeredBy: string;
+    resolution?: string;
+    angles: Record<string, unknown>[];
+  }[];
   clips: { name: string; base64: string }[];
 }
 
@@ -61,6 +68,19 @@ describe('parseSavedState', () => {
       live: false,
       everJoined: true,
     });
+  });
+
+  // A file written before bookmarks could be resolved has none of these.
+  it('treats a bookmark with no recorded decision as unresolved', () => {
+    const state = clone();
+    delete state.bookmarks[0]!.resolution;
+    expect(parseSavedState(state).bookmarks[0]?.resolution).toBe('unresolved');
+  });
+
+  it('refuses a decision it does not recognise rather than storing it', () => {
+    const state = clone();
+    state.bookmarks[0]!.resolution = 'chartreuse';
+    expect(parseSavedState(state).bookmarks[0]?.resolution).toBe('unresolved');
   });
 
   it('accepts a state with no bookmarks and no clips', () => {
