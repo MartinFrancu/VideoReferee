@@ -22,19 +22,12 @@ export interface SavedClip {
   readonly base64: string;
 }
 
-/**
- * A bookmark as it is written to a file: the decision, never the derived state.
- * Saving `state` would put a second truth in the file, to go stale the moment a
- * clip is restored alongside it.
- */
-export type SavedBookmark = Omit<Bookmark, 'state'>;
-
 export interface SavedState {
   readonly format: number;
   readonly savedAt: string;
   readonly boutPhase: BoutPhase;
   readonly cameras: readonly CameraView[];
-  readonly bookmarks: readonly SavedBookmark[];
+  readonly bookmarks: readonly Bookmark[];
   readonly clips: readonly SavedClip[];
 }
 
@@ -137,7 +130,7 @@ export function parseSavedState(input: unknown): SavedState {
     savedAt: asString(state['savedAt'], 'savedAt'),
     boutPhase: phase === 'recording' || phase === 'paused' ? phase : 'idle',
     cameras,
-    bookmarks: bookmarks as SavedBookmark[],
+    bookmarks: bookmarks as Bookmark[],
     clips,
   };
 }

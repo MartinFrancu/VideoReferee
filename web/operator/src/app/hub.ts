@@ -35,9 +35,26 @@ export function isWarmingUp(camera: Camera, warmUpMs: number): boolean {
   return camera.live && (camera.heldMs ?? 0) < warmUpMs;
 }
 
-/** Mirrors Resolution and BookmarkState in src/core/bookmarks.ts. */
+/** Mirrors Resolution in src/core/bookmarks.ts. */
 export type Resolution = 'unresolved' | 'red' | 'blue' | 'purple' | 'done';
-export type BookmarkState = 'loading' | Resolution;
+
+/** Mirrors isGathering in src/core/bookmarks.ts: a fact about the angles alone. */
+export function isGathering(bookmark: Bookmark): boolean {
+  return bookmark.angles.some((angle) => angle.status === 'pending');
+}
+
+/** What a bookmark is coloured. Presentation, so it lives on this side. */
+export type Swatch = 'loading' | Resolution;
+
+/**
+ * A decision overrides everything: once the referee has called it, the colour
+ * is that call whether or not footage is still arriving. Only an undecided
+ * bookmark shows the difference between gathering and waiting to be looked at.
+ */
+export function swatchFor(bookmark: Bookmark): Swatch {
+  if (bookmark.resolution !== 'unresolved') return bookmark.resolution;
+  return isGathering(bookmark) ? 'loading' : 'unresolved';
+}
 
 /** The decisions offered as buttons, in the order they appear. */
 export const RESOLUTIONS: readonly { value: Resolution; label: string }[] = [
@@ -61,10 +78,8 @@ export interface Bookmark {
   sessionMs: number;
   triggeredBy: string;
   angles: Angle[];
-  /** What the referee decided. */
+  /** What the referee decided, independently of whether the footage arrived. */
   resolution: Resolution;
-  /** What to show. Worked out by the hub, never here. */
-  state: BookmarkState;
 }
 
 export interface NewCamera {

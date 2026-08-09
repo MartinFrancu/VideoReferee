@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { BookmarkLedger } from './bookmarks.js';
+import { BookmarkLedger, isGathering } from './bookmarks.js';
 
 describe('keeping track of bookmarks', () => {
   test('a new bookmark expects a clip from every camera that was filming', () => {
@@ -72,25 +72,16 @@ describe('resolving a bookmark', () => {
     }
   };
 
-  test('starts unresolved, and shows as loading until every angle is in', () => {
-    const { it, id } = ledger();
-    expect(it.list()[0]).toMatchObject({ resolution: 'unresolved', state: 'loading' });
-
-    it.recordClip(id, { cameraId: 'mike', url: '/c.webm', startSessionMs: 0, bookmarkOffsetMs: 0 });
-    expect(it.list()[0]?.state).toBe('loading');
+  test('starts unresolved', () => {
+    const { it } = ledger();
+    expect(it.list()[0]?.resolution).toBe('unresolved');
   });
 
-  test('becomes unresolved once the last angle arrives', () => {
-    const { it, id } = ledger();
-    allClipsIn(it, id);
-    expect(it.list()[0]).toMatchObject({ resolution: 'unresolved', state: 'unresolved' });
-  });
-
-  test('shows the colour it was resolved to', () => {
+  test('records what it was resolved to', () => {
     const { it, id } = ledger();
     allClipsIn(it, id);
     it.resolve(id, 'blue');
-    expect(it.list()[0]).toMatchObject({ resolution: 'blue', state: 'blue' });
+    expect(it.list()[0]?.resolution).toBe('blue');
   });
 
   test('can be resolved again, in case the first call was wrong', () => {
@@ -98,17 +89,19 @@ describe('resolving a bookmark', () => {
     allClipsIn(it, id);
     it.resolve(id, 'blue');
     it.resolve(id, 'red');
-    expect(it.list()[0]?.state).toBe('red');
+    expect(it.list()[0]?.resolution).toBe('red');
   });
 
   /**
-   * A referee who has already decided does not need to be told footage is still
-   * arriving. The decision is the more useful thing to show, so it wins.
+   * The two are independent. A clip may never arrive — a phone dies, a camera
+   * joined seconds ago — and the referee can still call it from the angles that
+   * did. Nothing here may stand between them and that decision.
    */
-  test('a decision made before the footage lands still shows as that decision', () => {
+  test('can be resolved before any footage has arrived', () => {
     const { it, id } = ledger();
     it.resolve(id, 'purple');
-    expect(it.list()[0]?.state).toBe('purple');
+    expect(it.list()[0]?.resolution).toBe('purple');
+    expect(isGathering(it.list()[0]!)).toBe(true);
   });
 
   test('ignores a resolution for a bookmark it has never heard of', () => {
@@ -136,10 +129,11 @@ describe('resolving a bookmark', () => {
 
       it.resolveAllUnresolved('done');
 
-      const byId = new Map(it.list().map((b) => [b.id, b.state]));
+      const byId = new Map(it.list().map((b) => [b.id, b.resolution]));
       expect(byId.get(reviewed.id)).toBe('done');
       expect(byId.get(decided.id)).toBe('red');
-      expect(byId.get(stillArriving.id)).toBe('loading');
+      // Untouched: no footage yet, so nobody can have reviewed it.
+      expect(byId.get(stillArriving.id)).toBe('unresolved');
     });
 
     test('reports how many it swept, so the screen can say so', () => {
@@ -150,5 +144,30 @@ describe('resolving a bookmark', () => {
       expect(it.resolveAllUnresolved('done')).toBe(1);
       expect(it.resolveAllUnresolved('done')).toBe(0);
     });
+  });
+});
+
+describe('isGathering', () => {
+  const ledger = new BookmarkLedger();
+
+  test('is true while any angle is still to come, and about the angles alone', () => {
+    const bookmark = ledger.create({ sessionMs: 1000, triggeredBy: 'mike', cameraIds: ['mike', 'jana'] });
+    expect(isGathering(ledger.list()[0]!)).toBe(true);
+
+    ledger.recordClip(bookmark.id, { cameraId: 'mike', url: '/c.webm', startSessionMs: 0, bookmarkOffsetMs: 0 });
+    expect(isGathering(ledger.list()[0]!)).toBe(true);
+
+    // Resolving is a separate matter and must not change the answer.
+    ledger.resolve(bookmark.id, 'red');
+    expect(isGathering(ledger.list()[0]!)).toBe(true);
+
+    ledger.recordClip(bookmark.id, { cameraId: 'jana', url: '/c.webm', startSessionMs: 0, bookmarkOffsetMs: 0 });
+    expect(isGathering(ledger.list()[0]!)).toBe(false);
+  });
+
+  test('is false for a bookmark nobody was filming', () => {
+    const empty = new BookmarkLedger();
+    empty.create({ sessionMs: 1000, triggeredBy: 'mike', cameraIds: [] });
+    expect(isGathering(empty.list()[0]!)).toBe(false);
   });
 });

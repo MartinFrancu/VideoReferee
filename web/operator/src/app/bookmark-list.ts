@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
-import type { Bookmark, Camera } from './hub';
+import { swatchFor, type Bookmark, type Camera } from './hub';
 
 @Component({
   selector: 'vr-bookmark-list',
@@ -11,11 +11,11 @@ import type { Bookmark, Camera } from './hub';
         @for (row of rows(); track row.id) {
           <li
             data-testid="bookmark"
-            [attr.data-state]="row.state"
+            [attr.data-swatch]="row.swatch"
             (click)="chosen.emit(row.id)"
             [class.active]="row.id === selected()"
           >
-            <span class="dot" [style.background]="'var(--state-' + row.state + ')'" [title]="row.state"></span>
+            <span class="dot" [style.background]="'var(--state-' + row.swatch + ')'" [title]="row.swatch"></span>
             <span class="when">{{ row.when }}</span>
             <span class="who">from {{ row.triggeredBy }}</span>
             <span class="angles" data-testid="bookmark-angles">{{ row.angles }}</span>
@@ -41,7 +41,7 @@ import type { Bookmark, Camera } from './hub';
     li.active { border-color: var(--accent); }
     /* The state, readable at a glance down the list rather than per row. */
     .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; align-self: center; }
-    li[data-state='loading'] .dot { animation: pulse 1.4s ease-in-out infinite; }
+    li[data-swatch='loading'] .dot { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: 0.35; } }
     .when { font-variant-numeric: tabular-nums; font-weight: 600; }
     .who { font-size: 13px; color: var(--faded); }
@@ -60,7 +60,7 @@ export class BookmarkList {
       const received = bookmark.angles.filter((angle) => angle.status === 'received').length;
       return {
         id: bookmark.id,
-        state: bookmark.state,
+        swatch: swatchFor(bookmark),
         when: new Date(bookmark.sessionMs).toLocaleTimeString(),
         triggeredBy: bookmark.triggeredBy,
         // Say what is still in flight rather than hiding an incomplete set.

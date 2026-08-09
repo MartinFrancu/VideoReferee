@@ -208,8 +208,7 @@ function captureState(): SavedState {
     savedAt: new Date().toISOString(),
     boutPhase,
     cameras: cameraViews(),
-    // `state` is derived on read, so it is deliberately not written out.
-    bookmarks: bookmarks.list().map(({ state, ...saved }) => saved),
+    bookmarks: bookmarks.list(),
     clips: clipsForState(),
   };
 }

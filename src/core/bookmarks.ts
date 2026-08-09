@@ -19,14 +19,6 @@ export type AngleStatus = 'pending' | 'received';
  */
 export type Resolution = 'unresolved' | 'red' | 'blue' | 'purple' | 'done';
 
-/**
- * What to show for a bookmark — the decision, or that it is still gathering.
- *
- * `loading` is derived on every read rather than stored, because it stops being
- * true the moment the last clip lands and a stored copy would not notice.
- */
-export type BookmarkState = 'loading' | Resolution;
-
 export interface Angle {
   readonly cameraId: string;
   readonly status: AngleStatus;
@@ -44,19 +36,19 @@ export interface Bookmark {
   readonly sessionMs: number;
   readonly triggeredBy: string;
   readonly angles: readonly Angle[];
-  /** What the referee decided. Stored. */
+  /** What the referee decided, independently of whether the footage arrived. */
   readonly resolution: Resolution;
-  /** What to show. Derived from the resolution and the angles on every read. */
-  readonly state: BookmarkState;
 }
 
 /**
- * A decision outranks the wait for footage: a referee who has already called it
- * does not need to be told clips are still arriving.
+ * Still waiting on footage from at least one camera.
+ *
+ * A fact about the angles and nothing else. It says nothing about whether the
+ * referee has decided — a clip may never come and the call can still be made —
+ * and how the two are shown together is a question for whoever is drawing.
  */
-function stateOf(resolution: Resolution, angles: readonly Angle[]): BookmarkState {
-  if (resolution !== 'unresolved') return resolution;
-  return angles.some((angle) => angle.status === 'pending') ? 'loading' : 'unresolved';
+export function isGathering(bookmark: Pick<Bookmark, 'angles'>): boolean {
+  return bookmark.angles.some((angle) => angle.status === 'pending');
 }
 
 export class BookmarkLedger {
@@ -101,13 +93,16 @@ export class BookmarkLedger {
   /**
    * Sweep away everything reviewed and left alone, and say how many.
    *
-   * Deliberately only the ones showing as unresolved: a bookmark still waiting
-   * for footage has not been looked at yet, so sweeping it would bury it.
+   * Two conditions, both plainly stated: undecided, and not still gathering. A
+   * bookmark whose footage has not arrived cannot have been reviewed, so a bulk
+   * action would bury it unseen — which is a property of *this action*, not of
+   * the bookmark. Resolving one by hand is unaffected.
    */
   resolveAllUnresolved(resolution: Resolution): number {
     let swept = 0;
     for (const bookmark of this.#bookmarks.values()) {
-      if (stateOf(bookmark.resolution, [...bookmark.angles.values()]) !== 'unresolved') continue;
+      const angles = [...bookmark.angles.values()];
+      if (bookmark.resolution !== 'unresolved' || isGathering({ angles })) continue;
       bookmark.resolution = resolution;
       swept += 1;
     }
@@ -115,7 +110,7 @@ export class BookmarkLedger {
   }
 
   /** Replace everything with a loaded session. Used by save/load, not by a bout. */
-  restore(bookmarks: readonly Omit<Bookmark, 'state'>[]): void {
+  restore(bookmarks: readonly Bookmark[]): void {
     this.#bookmarks.clear();
     for (const bookmark of bookmarks) {
       this.#bookmarks.set(bookmark.id, {
@@ -136,14 +131,12 @@ export class BookmarkLedger {
   #view(id: string): Bookmark | undefined {
     const bookmark = this.#bookmarks.get(id);
     if (!bookmark) return undefined;
-    const angles = [...bookmark.angles.values()];
     return {
       id: bookmark.id,
       sessionMs: bookmark.sessionMs,
       triggeredBy: bookmark.triggeredBy,
-      angles,
+      angles: [...bookmark.angles.values()],
       resolution: bookmark.resolution,
-      state: stateOf(bookmark.resolution, angles),
     };
   }
 
