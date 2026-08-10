@@ -1,17 +1,18 @@
 {
   "name": "videoreferee",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "type": "module",
   "description": "Referee support tool: simultaneous multi-angle video of a bout, bookmarked and reviewed side by side.",
   "license": "GPL-3.0",
   "scripts": {
-    "start": "tsx src/hub/server.ts",
+    "start": "tsx tools/start.ts",
+    "start:hub": "tsx src/hub/server.ts",
     "gen-cert": "tsx tools/gen-cert.ts",
+    "build:operator": "npm --prefix web/operator install && npm --prefix web/operator run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "build:operator": "npm --prefix web/operator install && npm --prefix web/operator run build"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@angular/cli": "^21.2.20",

@@ -202,11 +202,6 @@ batch 3, never automated. Needs a decoder, so it belongs at the integration leve
 Mostly the user's UI list. Grouped because they share a surface and are best done
 in one pass.
 
-**A README with dumb-proof setup.** *(user request)* Step by step, assuming
-nothing: install, `npm run gen-cert`, build the operator, start the hub, open it
-on the laptop, scan a QR with each phone, accept the certificate warning. The
-repo currently explains its architecture at length and its setup nowhere.
-
 **Split the operator screen into three.** *(user request)* Angle management,
 bookmarks during a bout, and one bookmark's detail. Everything is on one page
 today, which is why the save controls are hard to find and why the review

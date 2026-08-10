@@ -8,6 +8,13 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.6
+
+- **D** — `npm start` now checks everything before starting: operator
+  dependencies, a certificate that covers this network, and a fresh build of the
+  operator screen. `npm run start:hub` is the bare hub for iterating. Adds a
+  README with step-by-step setup for an event and a troubleshooting table.
+
 ## 0.0.5
 
 - **R** — Record thirteen items raised after a session with the tool, and audit
