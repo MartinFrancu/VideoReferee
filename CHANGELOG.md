@@ -8,6 +8,11 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.7
+
+- **R** — Record five UI improvements of my own picking in the backlog, each
+  checked against the code. No behaviour change.
+
 ## 0.0.6
 
 - **D** — `npm start` now checks everything before starting: operator

@@ -202,6 +202,46 @@ batch 3, never automated. Needs a decoder, so it belongs at the integration leve
 Mostly the user's UI list. Grouped because they share a surface and are best done
 in one pass.
 
+### Five I would pick myself
+
+Not requested — offered. Ordered by how much they change the job rather than how
+they look, and each verified against the code rather than remembered.
+
+**1. The operator cannot mark anything.** `createBookmark` is reachable only
+from a camera's websocket. The person at the screen — usually the referee, the
+one whose decision this all exists to support — has no way to say "that". They
+have to ask someone holding a phone to press it for them. A button on the
+operator screen calls the same function; the only real question is what it
+records as `triggeredBy`.
+
+**2. Resolving does not move you on.** After deciding a bookmark you are left
+looking at the one you just finished, and must find the next undecided one in
+the list yourself. Since the working loop is *review the marked passage, then
+sweep*, resolving should advance to the next undecided bookmark automatically —
+turning the list into a queue you work through rather than a thing you navigate.
+The one care needed: never advance onto something still gathering, and stop
+rather than wrap at the end.
+
+**3. The scrubber does not show where the bookmark is.** It is a bare range
+input from `minRelativeMs` to `maxRelativeMs`; zero — the instant somebody
+actually tapped — is unmarked. Drag away from it and the only way back is the
+readout reaching `+0.00s`. A tick at zero, and ideally a shaded band showing how
+far each clip reaches, would make the thing being reviewed visible in the
+control used to review it.
+
+**4. The sweep cannot be undone.** "Mark 8 done" is one click, bulk, and
+irreversible: mis-click and eight bookmarks are decided. Everything else
+destructive here asks first (clearing bookmarks) or is trivially reversible
+(resolving one, which can just be resolved again). This is neither. An undo on
+the notice that already appears — "Marked 8 done · undo" — costs one remembered
+list of ids and removes the only action in the tool that can quietly lose work.
+
+**5. Review has no keyboard.** The only key handling anywhere is Enter and Space
+on the two frame buttons, and only while focused. Under time pressure a referee
+should not be hunting for targets with a mouse: space to play and pause, a key
+per resolution, and Escape to leave the bookmark. Arrow keys for stepping are
+already requested separately above; these are the rest of the same idea.
+
 **Split the operator screen into three.** *(user request)* Angle management,
 bookmarks during a bout, and one bookmark's detail. Everything is on one page
 today, which is why the save controls are hard to find and why the review
