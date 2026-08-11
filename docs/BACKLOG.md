@@ -199,48 +199,53 @@ batch 3, never automated. Needs a decoder, so it belongs at the integration leve
 
 ## P2 — the tool a referee can actually drive
 
-Mostly the user's UI list. Grouped because they share a surface and are best done
-in one pass.
+Mostly the user's UI list, with a few of my own marked *(mine)*. Grouped because
+they share a surface and are best done in one pass.
 
-### Five I would pick myself
+**~~The operator cannot mark anything~~ — done.** *(mine)* A BOOKMARK button in
+the header calls the same path a phone does, recording "the desk" as who
+triggered it, and refused — in the button and in the hub — when nothing is
+filming.
 
-Not requested — offered. Ordered by how much they change the job rather than how
-they look, and each verified against the code rather than remembered.
+**Resolving does not move you on.** *(mine)* After deciding a bookmark you are
+left looking at the one you just finished, and must find the next undecided one
+yourself. Since the loop is *review the marked passage, then sweep*, resolving
+should advance to the next undecided bookmark — turning the list into a queue you
+work through rather than one you navigate. Never advance onto something still
+gathering, and stop rather than wrap at the end.
 
-**1. The operator cannot mark anything.** `createBookmark` is reachable only
-from a camera's websocket. The person at the screen — usually the referee, the
-one whose decision this all exists to support — has no way to say "that". They
-have to ask someone holding a phone to press it for them. A button on the
-operator screen calls the same function; the only real question is what it
-records as `triggeredBy`.
-
-**2. Resolving does not move you on.** After deciding a bookmark you are left
-looking at the one you just finished, and must find the next undecided one in
-the list yourself. Since the working loop is *review the marked passage, then
-sweep*, resolving should advance to the next undecided bookmark automatically —
-turning the list into a queue you work through rather than a thing you navigate.
-The one care needed: never advance onto something still gathering, and stop
-rather than wrap at the end.
-
-**3. The scrubber does not show where the bookmark is.** It is a bare range
+**The scrubber does not show where the bookmark is.** *(mine)* It is a bare range
 input from `minRelativeMs` to `maxRelativeMs`; zero — the instant somebody
-actually tapped — is unmarked. Drag away from it and the only way back is the
-readout reaching `+0.00s`. A tick at zero, and ideally a shaded band showing how
-far each clip reaches, would make the thing being reviewed visible in the
-control used to review it.
+actually tapped — is unmarked. Drag away and the only route back is watching the
+readout for `+0.00s`. A tick at zero, and a shaded band per clip showing how far
+each reaches, would put the thing being reviewed inside the control used to
+review it.
 
-**4. The sweep cannot be undone.** "Mark 8 done" is one click, bulk, and
-irreversible: mis-click and eight bookmarks are decided. Everything else
-destructive here asks first (clearing bookmarks) or is trivially reversible
-(resolving one, which can just be resolved again). This is neither. An undo on
-the notice that already appears — "Marked 8 done · undo" — costs one remembered
-list of ids and removes the only action in the tool that can quietly lose work.
+**The sweep cannot be undone.** *(mine)* "Mark 8 done" is one click, bulk and
+irreversible. Everything else destructive here either asks first (clearing
+bookmarks) or is trivially reversible (resolving one). This is neither. An undo
+on the notice that already appears — "Marked 8 done · undo" — costs one
+remembered list of ids and removes the only action that can quietly lose work.
 
-**5. Review has no keyboard.** The only key handling anywhere is Enter and Space
-on the two frame buttons, and only while focused. Under time pressure a referee
-should not be hunting for targets with a mouse: space to play and pause, a key
-per resolution, and Escape to leave the bookmark. Arrow keys for stepping are
-already requested separately above; these are the rest of the same idea.
+**Review has no keyboard.** *(mine)* The only key handling anywhere is Enter and
+Space on the two frame buttons, and only while focused. Under time pressure a
+referee should not be hunting mouse targets: space to play and pause, a key per
+resolution, Escape to leave the bookmark. Arrow keys for stepping are requested
+separately above; this is the rest of the same idea.
+
+**Join bookmarks that overlap.** *(user request)* Two taps a second apart, or a
+tap from the desk and one from a phone at nearly the same instant, are almost
+always the same incident seen twice — and reviewing it twice wastes the time the
+tool exists to save. Distinct from *Grouping bookmarks that mark the same
+moment* below, which is about presenting them together: this is about deciding
+they are one, with one set of clips and one decision.
+
+The judgement is what makes it interesting. Overlapping *when*, by some window —
+but two taps a second apart are deliberately two bookmarks today, because they
+often mark different fighters, and joining those would lose a decision. So
+joining probably wants to be offered rather than automatic, and probably only
+while both are still undecided. Worth doing after resolutions have been used in
+anger, when it is clear how often two really are one. **Needs use.**
 
 **Split the operator screen into three.** *(user request)* Angle management,
 bookmarks during a bout, and one bookmark's detail. Everything is on one page

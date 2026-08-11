@@ -8,6 +8,11 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.9
+
+- **R** — Fold my five UI ideas into the backlog proper, marked *(mine)*, and add
+  joining bookmarks that overlap. No behaviour change.
+
 ## 0.0.8
 
 - **D** — A BOOKMARK button on the operator screen, so the person at the desk can
