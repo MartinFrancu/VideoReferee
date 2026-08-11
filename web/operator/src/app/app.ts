@@ -42,6 +42,11 @@ export class App {
     () => this.hub.bookmarks().filter((bookmark) => bookmark.resolution === 'unresolved').length
   );
 
+  /** Nothing is filming, so a bookmark would have no angles and never will. */
+  protected readonly liveCameras = computed(
+    () => this.hub.cameras().filter((camera) => camera.live).length
+  );
+
   protected readonly invited = signal<NewCamera | null>(null);
   protected readonly qr = signal<SafeHtml | null>(null);
 
@@ -101,6 +106,14 @@ export class App {
 
   protected cancelReset(): void {
     this.resetDialog()?.nativeElement.close();
+  }
+
+  protected async mark(): Promise<void> {
+    try {
+      await this.hub.bookmark();
+    } catch {
+      this.notice.set({ text: 'Could not mark — no camera is filming', bad: true });
+    }
   }
 
   protected async sweep(): Promise<void> {

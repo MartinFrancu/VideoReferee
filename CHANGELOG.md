@@ -8,6 +8,12 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.8
+
+- **D** — A BOOKMARK button on the operator screen, so the person at the desk can
+  mark what they just saw without asking someone holding a phone. Disabled, and
+  refused by the hub, when no camera is filming.
+
 ## 0.0.7
 
 - **R** — Record five UI improvements of my own picking in the backlog, each

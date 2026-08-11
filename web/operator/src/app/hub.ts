@@ -162,6 +162,11 @@ export class Hub {
     );
   }
 
+  /** Mark this instant from the desk. Every filming camera answers, as ever. */
+  async bookmark(): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/bookmarks', {}));
+  }
+
   async resolve(id: string, resolution: Resolution): Promise<void> {
     await firstValueFrom(this.#http.post('/api/bookmarks/resolve', { id, resolution }));
   }

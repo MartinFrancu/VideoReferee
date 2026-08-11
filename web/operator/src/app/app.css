@@ -69,6 +69,17 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 }
 .notice.bad { color: var(--dead); }
 
+/* The one action taken while something is happening in the ring. */
+.mark {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--dead);
+  border-color: var(--dead);
+  color: #fff;
+  padding: 8px 22px;
+}
+.mark:disabled { background: var(--rule); border-color: var(--rule); color: var(--faded); }
+
 main { padding: 22px; display: grid; gap: 22px; max-width: 1100px; }
 section h2 {
   font-size: 13px;

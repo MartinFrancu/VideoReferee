@@ -6,6 +6,18 @@
     <span class="offline">hub unreachable</span>
   }
   <span class="spacer"></span>
+  <!--
+    The referee is usually at this screen rather than holding a phone, so without
+    this they have to ask someone else to mark what they just saw.
+  -->
+  <button
+    class="mark"
+    data-testid="mark"
+    [disabled]="liveCameras() === 0"
+    [title]="liveCameras() ? 'Mark this instant — every camera answers' : 'No camera is filming'"
+    (click)="mark()"
+  >BOOKMARK</button>
+
   <button class="primary" data-testid="start-bout" (click)="hub.setPhase('recording')">Start bout</button>
   <button data-testid="stop-bout" (click)="hub.setPhase('idle')">Stop</button>
 

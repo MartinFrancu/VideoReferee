@@ -123,9 +123,15 @@ function tellCameras(message: unknown): void {
   }
 }
 
+/** What an operator-triggered bookmark records, having no camera behind it. */
+const THE_DESK = 'the desk';
+
 /**
  * One tap, every camera. The hub stamps the instant on its own clock and asks
  * everyone who is filming for their footage — not only whoever noticed.
+ *
+ * `triggeredBy` is a camera id, or a name for whoever else asked; a value that
+ * matches no camera is recorded as it stands.
  */
 function createBookmark(triggeredBy: string): void {
   const filming = cameras.list(sessionNow()).filter((camera) => camera.live);
@@ -406,6 +412,20 @@ async function handle(
   }
 
   // What the referee decided: one bookmark, or every one still undecided.
+  // The referee is usually at this screen, not holding a phone. Without this
+  // they have to ask someone else to mark the thing they just saw.
+  if (req.method === 'POST' && url.pathname === '/api/bookmarks') {
+    const filming = cameras.list(sessionNow()).filter((camera) => camera.live);
+    if (filming.length === 0) {
+      // A bookmark nobody was filming has no angles and never will have any.
+      res.writeHead(409, { 'Content-Type': 'text/plain' }).end('no camera is filming');
+      return;
+    }
+    createBookmark(THE_DESK);
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/bookmarks/resolve') {
     const body = (await readJson(req)) as { id?: string; resolution?: Resolution; all?: boolean };
     const resolution = body.resolution;
