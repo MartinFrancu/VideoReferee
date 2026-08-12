@@ -29,6 +29,7 @@ import {
   STATE_FORMAT,
   isSafeClipName,
   parseSavedState,
+  savedStateFilename,
   versionNotice,
   type SavedState,
 } from '../core/state.js';
@@ -387,7 +388,7 @@ async function handle(
   }
 
   if (req.method === 'GET' && url.pathname === '/api/state') {
-    const filename = `videoreferee-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    const filename = savedStateFilename(new Date());
     const body = JSON.stringify(captureState());
     console.log(`saved state: ${(Buffer.byteLength(body) / 1024 / 1024).toFixed(1)}MB`);
     res.writeHead(200, {

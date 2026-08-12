@@ -14,6 +14,7 @@ import { BookmarkList } from './bookmark-list';
 import { CameraCard } from './camera-card';
 import { ReviewStage } from './review-stage';
 import { Hub, type NewCamera } from './hub';
+import { savedStateFilename } from './state-filename';
 
 @Component({
   selector: 'app-root',
@@ -106,6 +107,28 @@ export class App {
 
   protected cancelReset(): void {
     this.resetDialog()?.nativeElement.close();
+  }
+
+  protected async saveState(): Promise<void> {
+    this.menuOpen.set(false);
+    this.notice.set({ text: 'Saving…', bad: false });
+    try {
+      const blob = await this.hub.fetchState();
+      const filename = savedStateFilename(new Date());
+      // Anchor built, clicked and dropped here, so nothing else can remove it
+      // mid-download — which is what went wrong when it lived in the menu.
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      this.notice.set({ text: `Saved ${filename}`, bad: false });
+    } catch {
+      this.notice.set({ text: 'Could not save the session', bad: true });
+    }
   }
 
   protected async mark(): Promise<void> {

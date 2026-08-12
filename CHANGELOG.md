@@ -8,6 +8,12 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.10
+
+- **B** — Saving a session downloads instead of failing. The file is fetched
+  in-page and handed to the browser as a Blob, rather than followed as a link
+  whose anchor the closing menu destroyed mid-download.
+
 ## 0.0.9
 
 - **R** — Fold my five UI ideas into the backlog proper, marked *(mine)*, and add

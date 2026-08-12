@@ -70,6 +70,18 @@ function asString(value: unknown, field: string): string {
 }
 
 /**
+ * What to call a saved session.
+ *
+ * Lives here rather than in the hub because both ends need it: the hub offers
+ * it in `Content-Disposition`, and the operator screen has to name the file it
+ * builds. Colons are stripped because Windows will not have them in a filename,
+ * and the obvious ISO timestamp is full of them.
+ */
+export function savedStateFilename(at: Date): string {
+  return `videoreferee-${at.toISOString().replace(/[:.]/g, '-')}.json`;
+}
+
+/**
  * Whether the operator should be told the file came from a different build.
  *
  * Saving exists so a session can be handed to someone else, which means the two

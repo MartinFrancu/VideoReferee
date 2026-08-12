@@ -162,6 +162,20 @@ export class Hub {
     );
   }
 
+  /**
+   * Fetch the whole session as a file.
+   *
+   * In-page rather than by following a link. A link with `download` makes the
+   * browser fetch it outside the page, and that request failed in the field
+   * while typing the same address into a tab worked — the anchor lives inside a
+   * menu that closes on click, so it is gone before the download has started.
+   * Every other request this screen makes already succeeds; this one now goes
+   * the same way.
+   */
+  async fetchState(): Promise<Blob> {
+    return firstValueFrom(this.#http.get('/api/state', { responseType: 'blob' }));
+  }
+
   /** Mark this instant from the desk. Every filming camera answers, as ever. */
   async bookmark(): Promise<void> {
     await firstValueFrom(this.#http.post('/api/bookmarks', {}));

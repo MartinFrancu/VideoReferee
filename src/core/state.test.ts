@@ -4,6 +4,7 @@ import {
   STATE_FORMAT,
   isSafeClipName,
   parseSavedState,
+  savedStateFilename,
   versionNotice,
   type SavedState,
 } from './state.js';
@@ -193,5 +194,31 @@ describe('versionNotice', () => {
     expect(notice).toMatch(/before/i);
     expect(notice).toContain('0.0.3');
     expect(notice).not.toContain('unknown');
+  });
+});
+
+describe('savedStateFilename', () => {
+  const at = new Date('2026-08-09T21:32:18.325Z');
+
+  it('names the file after the tool and the instant it was saved', () => {
+    expect(savedStateFilename(at)).toContain('videoreferee');
+    expect(savedStateFilename(at)).toContain('2026-08-09');
+  });
+
+  /**
+   * Windows forbids a colon in a filename, and the obvious ISO timestamp is
+   * full of them. A name the browser silently mangles is worse than a plain one.
+   */
+  it('carries nothing a filename cannot hold', () => {
+    expect(savedStateFilename(at)).not.toMatch(/[:*?"<>|]/);
+  });
+
+  it('is a .json file', () => {
+    expect(savedStateFilename(at).endsWith('.json')).toBe(true);
+  });
+
+  it('gives two saves a second apart different names', () => {
+    const later = new Date(at.getTime() + 1000);
+    expect(savedStateFilename(later)).not.toBe(savedStateFilename(at));
   });
 });
