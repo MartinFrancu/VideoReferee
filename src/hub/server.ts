@@ -19,7 +19,6 @@ import { readClusters, readInitSegment, readVideoTrackNumber } from '../core/med
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
 import {
-  type BoutPhase,
   type CameraToHub,
   type CameraView,
   type UploadHeader,
@@ -93,7 +92,6 @@ const syncSamples = new Map<string, SyncSample[]>();
 const heldMs = new Map<string, number>();
 const cameraSockets = new Map<string, WebSocket>();
 const operatorSockets = new Set<WebSocket>();
-let boutPhase: BoutPhase = 'idle';
 
 /** Session time. One clock, on the hub, and everything else is measured against it. */
 const sessionNow = () => Date.now();
@@ -108,7 +106,6 @@ function cameraViews(): CameraView[] {
 function tellOperators(): void {
   const messages = [
     JSON.stringify({ type: 'cameras', cameras: cameraViews() }),
-    JSON.stringify({ type: 'boutPhase', phase: boutPhase }),
     JSON.stringify({ type: 'bookmarks', bookmarks: bookmarks.list() }),
   ];
   for (const socket of operatorSockets) {
@@ -230,7 +227,6 @@ function captureState(): SavedState {
     format: STATE_FORMAT,
     savedAt: new Date().toISOString(),
     version: VERSION,
-    boutPhase,
     cameras: cameraViews(),
     bookmarks: bookmarks.list(),
     clips: clipsForState(),
@@ -256,7 +252,6 @@ function loadState(state: SavedState): string | null {
 
   cameras.restore(state.cameras.map((camera) => ({ id: camera.id, name: camera.name })));
   bookmarks.restore(state.bookmarks);
-  boutPhase = state.boutPhase;
   tellOperators();
 
   console.log(
@@ -366,18 +361,6 @@ async function handle(
     tellOperators();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ id, name, joinUrl, qr }));
-    return;
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/bout') {
-    const body = (await readJson(req)) as { phase?: BoutPhase };
-    if (body.phase) {
-      boutPhase = body.phase;
-      tellCameras({ type: 'boutPhase', phase: boutPhase });
-      tellOperators();
-    }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ phase: boutPhase }));
     return;
   }
 
@@ -526,7 +509,6 @@ sockets.on('connection', (socket, req) => {
     operatorSockets.add(socket);
     socket.on('close', () => operatorSockets.delete(socket));
     socket.send(JSON.stringify({ type: 'cameras', cameras: cameraViews() }));
-    socket.send(JSON.stringify({ type: 'boutPhase', phase: boutPhase }));
     socket.send(JSON.stringify({ type: 'bookmarks', bookmarks: bookmarks.list() }));
     return;
   }
@@ -551,7 +533,6 @@ sockets.on('connection', (socket, req) => {
       cameraSockets.set(cameraId, socket);
       const name = cameras.list(sessionNow()).find((c) => c.id === cameraId)?.name ?? '';
       socket.send(JSON.stringify({ type: 'welcome', cameraId, name }));
-      socket.send(JSON.stringify({ type: 'boutPhase', phase: boutPhase }));
       tellOperators();
       return;
     }
@@ -616,7 +597,7 @@ function warnAboutCertificateCoverage(addresses: readonly string[]): void {
 
 server.listen(PORT, () => {
   const addresses = localAddresses();
-  console.log(`\n  VideoReferee ${VERSION} — bout phase: ${boutPhase}\n`);
+  console.log(`\n  VideoReferee ${VERSION}\n`);
   if (addresses.length === 0) {
     console.log('  No local network address found. Are you on Wi-Fi?');
   }

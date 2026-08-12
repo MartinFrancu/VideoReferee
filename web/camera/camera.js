@@ -222,11 +222,6 @@ function connect() {
       return;
     }
 
-    if (message.type === 'boutPhase') {
-      log(`bout is ${message.phase}`);
-      return;
-    }
-
     if (message.type === 'bookmark') {
       log('bookmark — sending what I have');
       // Wait for the post-roll to actually be recorded before handing it over.

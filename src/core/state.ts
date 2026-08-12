@@ -10,7 +10,7 @@
 // everything is checked on the way in, and the errors say what is wrong.
 
 import type { Bookmark, Resolution } from './bookmarks.js';
-import type { BoutPhase, CameraView } from './protocol.js';
+import type { CameraView } from './protocol.js';
 
 /** Bumped when the shape changes in a way an older build could misread. */
 export const STATE_FORMAT = 1;
@@ -30,7 +30,6 @@ export interface SavedState {
    * hands you. "unknown" for a file written before it was recorded.
    */
   readonly version: string;
-  readonly boutPhase: BoutPhase;
   readonly cameras: readonly CameraView[];
   readonly bookmarks: readonly Bookmark[];
   readonly clips: readonly SavedClip[];
@@ -163,13 +162,14 @@ export function parseSavedState(input: unknown): SavedState {
     return { name, base64: asString(clip['base64'], `clips[${index}].base64`) };
   });
 
-  const phase = state['boutPhase'];
+  // A file saved when a bout had a phase carries `boutPhase`. It is read past
+  // rather than refused: the format is otherwise unchanged, and the field
+  // described a control that never did anything.
   const version = state['version'];
   return {
     format,
     savedAt: asString(state['savedAt'], 'savedAt'),
     version: typeof version === 'string' ? version : 'unknown',
-    boutPhase: phase === 'recording' || phase === 'paused' ? phase : 'idle',
     cameras,
     bookmarks: bookmarks as Bookmark[],
     clips,

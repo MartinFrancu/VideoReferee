@@ -115,18 +115,19 @@ from the right camera, at the wrong moment, with nothing on screen saying so —
 so two angles that merely disagreed about *when* looked like two angles that
 disagreed about *what happened*. That is the exact confusion being hunted.
 
-### Remove start/end bout
+### ~~Remove start/end bout~~ — done
 
-*(user request, raised twice)*
+*(user request, raised three times)*
 
-Confirmed: it does nothing. The camera page only logs the phase
-(`web/camera/camera.js`), recording runs continuously from join, and no cut
-depends on it. A control that implies state it does not have is worse than no
-control. If point-counting ever arrives it can come back.
+It did nothing: the camera page only logged the phase, recording ran
+continuously from join, and no cut depended on it. A control that implies state
+it does not have is worse than no control. Gone from the header along with the
+phase label beside it, and out of the wire protocol, the hub and the saved
+state — a file that still carries `boutPhase` opens fine, the field is ignored.
+If point-counting ever arrives it can come back.
 
-The phase label in the header goes with it — it only ever reports what those
-buttons set. A screen name may want that spot instead (see *Split the operator
-screen* below).
+The header now has room for a screen name (see *Split the operator screen*
+below).
 
 ### Saving a session fails in the browser
 

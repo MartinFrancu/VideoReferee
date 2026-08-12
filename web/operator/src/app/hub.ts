@@ -12,8 +12,6 @@ export interface Camera {
   heldMs: number | null;
 }
 
-export type BoutPhase = 'idle' | 'recording' | 'paused';
-
 /** Mirrors Config in src/core/config.ts. The hub is the source of the values. */
 export interface Config {
   bookmark: { preRollMs: number; postRollMs: number; postRollWaitMs: number };
@@ -102,7 +100,6 @@ const RECONNECT_DELAY_MS = 1500;
 @Injectable({ providedIn: 'root' })
 export class Hub {
   readonly cameras = signal<Camera[]>([]);
-  readonly phase = signal<BoutPhase>('idle');
   readonly bookmarks = signal<Bookmark[]>([]);
   readonly connected = signal(false);
   /** Settings live on the hub, in config.json; this screen only reads them. */
@@ -133,17 +130,12 @@ export class Hub {
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
       if (message.type === 'cameras') this.cameras.set(message.cameras);
-      if (message.type === 'boutPhase') this.phase.set(message.phase);
       if (message.type === 'bookmarks') this.bookmarks.set(message.bookmarks);
     });
   }
 
   addCamera(name: string): Promise<NewCamera> {
     return firstValueFrom(this.#http.post<NewCamera>('/api/cameras', { name }));
-  }
-
-  async setPhase(phase: BoutPhase): Promise<void> {
-    await firstValueFrom(this.#http.post('/api/bout', { phase }));
   }
 
   /**

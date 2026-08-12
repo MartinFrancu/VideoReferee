@@ -15,14 +15,13 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   opacity: 0.75;
   margin-left: -8px;
 }
-.phase, .offline {
+.offline {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--faded);
+  color: var(--dead);
 }
-.offline { color: var(--dead); }
 .spacer { flex: 1; }
 
 /* Session menu. Tucked away: everything in it is either rare or destructive. */

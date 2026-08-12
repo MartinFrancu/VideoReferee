@@ -13,7 +13,6 @@ const valid: SavedState = {
   format: STATE_FORMAT,
   savedAt: '2026-08-08T20:14:33.000Z',
   version: '0.0.2',
-  boutPhase: 'recording',
   cameras: [
     { id: 'cam-1', name: 'mike', live: true, everJoined: true, heldMs: 20_000, syncUncertaintyMs: 4 },
   ],
@@ -45,7 +44,6 @@ interface Draft {
   format: number;
   savedAt: string;
   version?: string;
-  boutPhase: string;
   cameras: Record<string, unknown>[];
   bookmarks: {
     id: string;
@@ -66,7 +64,17 @@ describe('parseSavedState', () => {
     expect(read.clips).toEqual(valid.clips);
     expect(read.savedAt).toBe(valid.savedAt);
     expect(read.version).toBe('0.0.2');
-    expect(read.boutPhase).toBe('recording');
+  });
+
+  /**
+   * Bouts had a phase once, and every file saved before this carries it. It is
+   * ignored rather than refused — a troubleshooting file that will not open is
+   * worse than useless, and nothing here needs the field to make sense of it.
+   */
+  it('opens a file from when a bout had a phase, without carrying the phase on', () => {
+    const read = parseSavedState({ ...clone(), boutPhase: 'recording' });
+    expect(read.bookmarks).toEqual(valid.bookmarks);
+    expect('boutPhase' in read).toBe(false);
   });
 
   // A file cannot be filming. Showing a loaded camera as live would put a green

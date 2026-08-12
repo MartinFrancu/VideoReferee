@@ -50,7 +50,7 @@ It checks everything before starting, and says what it is doing:
 When it is ready it prints something like:
 
 ```
-  VideoReferee 0.0.5 — bout phase: idle
+  VideoReferee 0.0.13
 
   Operator  https://192.168.1.3:3000/
 ```

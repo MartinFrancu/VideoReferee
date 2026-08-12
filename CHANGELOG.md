@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.13
+
+- **D** — *Start bout* and *Stop* are gone, and the phase label beside them with
+  them. They never did anything: cameras record from the moment they join, and
+  no cut ever depended on the phase. The whole idea goes with the buttons — out
+  of the wire protocol, the hub, `POST /api/bout`, the camera's log and the
+  saved session. A file saved when the phase existed still opens; the field is
+  read past.
+
 ## 0.0.12
 
 - **B** — Three dependencies were carrying this project's version instead of

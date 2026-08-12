@@ -91,7 +91,7 @@ Your flow, end to end, on two real phones.
    "north" — they move). Cameras are enrolled for the session, not per bout.
 3. Adding a camera shows a QR; scanning it opens the camera page already named and
    joined.
-4. Start bout.
+4. Cameras record from the moment they join — there is no bout to start.
 5. Cameras heartbeat so the start screen shows they are alive.
 6. Bookmark on any phone.
 7. Every phone uploads its ring buffer; the hub aligns and cuts (M1's core).

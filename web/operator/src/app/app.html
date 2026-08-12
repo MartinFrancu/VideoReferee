@@ -1,7 +1,6 @@
 <header>
   <h1>VideoReferee</h1>
   <span class="version" data-testid="version" title="Hub version">v{{ hub.version() }}</span>
-  <span class="phase" data-testid="phase">{{ hub.phase() }}</span>
   @if (!hub.connected()) {
     <span class="offline">hub unreachable</span>
   }
@@ -17,9 +16,6 @@
     [title]="liveCameras() ? 'Mark this instant — every camera answers' : 'No camera is filming'"
     (click)="mark()"
   >BOOKMARK</button>
-
-  <button class="primary" data-testid="start-bout" (click)="hub.setPhase('recording')">Start bout</button>
-  <button data-testid="stop-bout" (click)="hub.setPhase('idle')">Stop</button>
 
   <!--
     The working loop: fight, review what was marked, sweep the rest away, fight

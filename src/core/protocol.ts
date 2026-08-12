@@ -12,7 +12,6 @@ export type HubToCamera =
   | { type: 'rejected'; reason: string }
   /** Sync probe. `sentAt` is session time; the camera echoes it back untouched. */
   | { type: 'ping'; sentAt: number }
-  | { type: 'boutPhase'; phase: BoutPhase }
   /** Every camera gets this, not only the one that tapped. */
   | { type: 'bookmark'; bookmarkId: string; sessionMs: number };
 
@@ -27,7 +26,6 @@ export type CameraToHub =
 /** Anything the hub says to the operator's screen. */
 export type HubToOperator =
   | { type: 'cameras'; cameras: CameraView[] }
-  | { type: 'boutPhase'; phase: BoutPhase }
   | { type: 'bookmarks'; bookmarks: Bookmark[] };
 
 export interface CameraView {
@@ -40,8 +38,6 @@ export interface CameraView {
   /** How far this camera's clock estimate could be wrong, once known. */
   readonly syncUncertaintyMs: number | null;
 }
-
-export type BoutPhase = 'idle' | 'recording' | 'paused';
 
 /**
  * Timings that used to live here are now settings — see `src/core/config.ts`
