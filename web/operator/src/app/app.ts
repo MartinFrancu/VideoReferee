@@ -35,6 +35,12 @@ export class App {
     required(path.name, { message: 'Name the camera after whoever is holding it' });
   });
 
+  /**
+   * Which screen is showing. Cameras first: at the start of an event there is
+   * nothing to review, and every phone has to be set up before there can be.
+   */
+  protected readonly tab = signal<'cameras' | 'bookmarks'>('cameras');
+
   protected readonly selectedBookmark = signal<string | null>(null);
   protected readonly reviewing = computed(() =>
     this.hub.bookmarks().find((bookmark) => bookmark.id === this.selectedBookmark()) ?? null

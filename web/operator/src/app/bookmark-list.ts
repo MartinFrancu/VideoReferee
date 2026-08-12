@@ -17,8 +17,8 @@ import { swatchFor, type Bookmark, type Camera } from './hub';
           >
             <span class="dot" [style.background]="'var(--state-' + row.swatch + ')'" [title]="row.swatch"></span>
             <span class="when">{{ row.when }}</span>
-            <span class="who">from {{ row.triggeredBy }}</span>
             <span class="angles" data-testid="bookmark-angles">{{ row.angles }}</span>
+            <span class="who">from {{ row.triggeredBy }}</span>
           </li>
         }
       </ul>
@@ -28,24 +28,44 @@ import { swatchFor, type Bookmark, type Camera } from './hub';
   `,
   styles: `
     ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    /*
+      Two lines in a narrow panel: when it happened and what arrived on the
+      first, who marked it underneath. Everything stays on one line each, which
+      a single row of four could not do at this width.
+    */
     li {
       background: var(--panel);
       border: 1px solid var(--rule);
       border-radius: 10px;
-      padding: 12px 14px;
-      display: flex;
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
       align-items: baseline;
-      gap: 12px;
+      column-gap: 9px;
       cursor: pointer;
     }
     li.active { border-color: var(--accent); }
     /* The state, readable at a glance down the list rather than per row. */
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; align-self: center; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
     li[data-swatch='loading'] .dot { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: 0.35; } }
-    .when { font-variant-numeric: tabular-nums; font-weight: 600; }
-    .who { font-size: 13px; color: var(--faded); }
-    .angles { margin-left: auto; font-size: 12.5px; color: var(--faded); font-variant-numeric: tabular-nums; }
+    .when { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+    .who {
+      grid-column: 2 / -1;
+      font-size: 12.5px;
+      color: var(--faded);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .angles {
+      text-align: right;
+      font-size: 12px;
+      color: var(--faded);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
     .empty { color: var(--faded); font-size: 14px; }
   `,
 })

@@ -1,43 +1,41 @@
 <header>
   <h1>VideoReferee</h1>
   <span class="version" data-testid="version" title="Hub version">v{{ hub.version() }}</span>
+
+  <!--
+    Two screens, two jobs: setting the phones up before a bout, and working
+    through what was marked during one. Nothing on either is wanted while doing
+    the other.
+  -->
+  <nav class="tabs" role="tablist">
+    <button
+      role="tab"
+      data-testid="tab-cameras"
+      [class.on]="tab() === 'cameras'"
+      [attr.aria-selected]="tab() === 'cameras'"
+      (click)="tab.set('cameras')"
+    >Cameras</button>
+    <button
+      role="tab"
+      data-testid="tab-bookmarks"
+      [class.on]="tab() === 'bookmarks'"
+      [attr.aria-selected]="tab() === 'bookmarks'"
+      (click)="tab.set('bookmarks')"
+    >Bookmarks</button>
+  </nav>
+
   @if (!hub.connected()) {
     <span class="offline">hub unreachable</span>
   }
   <span class="spacer"></span>
-  <!--
-    The referee is usually at this screen rather than holding a phone, so without
-    this they have to ask someone else to mark what they just saw.
-  -->
-  <button
-    class="mark"
-    data-testid="mark"
-    [disabled]="liveCameras() === 0"
-    [title]="liveCameras() ? 'Mark this instant — every camera answers' : 'No camera is filming'"
-    (click)="mark()"
-  >BOOKMARK</button>
-
-  <!--
-    The working loop: fight, review what was marked, sweep the rest away, fight
-    on. Only bookmarks that have been looked at and left alone are swept.
-  -->
-  <button
-    data-testid="sweep"
-    [disabled]="unresolvedCount() === 0"
-    [title]="unresolvedCount() ? 'Mark every reviewed bookmark done' : 'Nothing waiting for a decision'"
-    (click)="sweep()"
-  >
-    Mark {{ unresolvedCount() }} done
-  </button>
 
   <div class="menu">
     <button
       data-testid="menu-toggle"
-      title="Session"
       aria-haspopup="menu"
       [attr.aria-expanded]="menuOpen()"
       (click)="toggleMenu()"
-    >⋯</button>
+    >Session ⌄</button>
 
     @if (menuOpen()) {
       <div class="menu-items" role="menu" data-testid="menu">
@@ -64,9 +62,8 @@
   </p>
 }
 
-<main>
-  <section>
-    <h2>Cameras</h2>
+@if (tab() === 'cameras') {
+  <main class="cameras-tab" data-testid="cameras-tab">
     @if (hub.cameras().length) {
       <div class="cameras">
         @for (camera of hub.cameras(); track camera.id) {
@@ -74,29 +71,9 @@
         }
       </div>
     } @else {
-      <p class="empty">No cameras yet. Add one and scan the code with its phone.</p>
+      <p class="empty">No cameras yet. Add one below and scan the code with its phone.</p>
     }
-  </section>
 
-  <section>
-    <h2>Bookmarks</h2>
-    <vr-bookmark-list
-      [bookmarks]="hub.bookmarks()"
-      [cameras]="hub.cameras()"
-      [selected]="selectedBookmark()"
-      (chosen)="selectedBookmark.set($event)"
-    />
-  </section>
-
-  @if (reviewing(); as bookmark) {
-    <section data-testid="review">
-      <h2>Reviewing {{ bookmark.triggeredBy }}'s bookmark</h2>
-      <vr-review-stage [bookmark]="bookmark" [cameras]="hub.cameras()" />
-    </section>
-  }
-
-  <section>
-    <h2>Add a camera</h2>
     <form class="add" (submit)="addCamera(); $event.preventDefault()">
       <input
         [formField]="cameraForm.name"
@@ -106,8 +83,52 @@
       />
       <button data-testid="add-camera" [disabled]="cameraForm().invalid()">Add camera</button>
     </form>
-  </section>
-</main>
+  </main>
+} @else {
+  <main class="bookmarks-tab" data-testid="bookmarks-tab">
+    <!--
+      Marking sits at the top of the list it adds to, and the sweep at the
+      bottom of it: the working loop reads down the panel in the order it runs.
+    -->
+    <aside class="side">
+      <button
+        class="mark"
+        data-testid="mark"
+        [disabled]="liveCameras() === 0"
+        [title]="liveCameras() ? 'Mark this instant — every camera answers' : 'No camera is filming'"
+        (click)="mark()"
+      >BOOKMARK</button>
+
+      <div class="list">
+        <vr-bookmark-list
+          [bookmarks]="hub.bookmarks()"
+          [cameras]="hub.cameras()"
+          [selected]="selectedBookmark()"
+          (chosen)="selectedBookmark.set($event)"
+        />
+      </div>
+
+      <button
+        data-testid="sweep"
+        [disabled]="unresolvedCount() === 0"
+        [title]="unresolvedCount() ? 'Mark every reviewed bookmark done' : 'Nothing waiting for a decision'"
+        (click)="sweep()"
+      >
+        Mark {{ unresolvedCount() }} done
+      </button>
+    </aside>
+
+    <section class="stage" data-testid="review">
+      @if (reviewing(); as bookmark) {
+        <vr-review-stage [bookmark]="bookmark" [cameras]="hub.cameras()" />
+      } @else {
+        <p class="empty" data-testid="nothing-chosen">
+          Pick a bookmark on the left to see every angle of it.
+        </p>
+      }
+    </section>
+  </main>
+}
 
 <dialog #qrDialog data-testid="qr-dialog">
   <h3>{{ invited()?.name }}</h3>

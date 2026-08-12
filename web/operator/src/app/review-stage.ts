@@ -21,6 +21,23 @@ const NUDGE_MS = 15;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReviewTile],
   template: `
+    <div class="tiles" data-testid="review-tiles">
+      @for (angle of angles(); track angle.cameraId) {
+        <vr-review-tile
+          [angle]="angle"
+          [name]="nameFor(angle.cameraId)"
+          [lead]="angle.cameraId === leadId()"
+          [following]="dragging() && angle.cameraId !== leadId()"
+          (chosen)="leadId.set(angle.cameraId)"
+          (spanKnown)="noteSpan(angle.cameraId, $event)"
+        />
+      }
+    </div>
+
+    <!--
+      Everything that drives the footage, along the bottom edge under it: step,
+      play, scrub, and the decision at the far end where the motion finishes.
+    -->
     <div class="controls" data-testid="review-controls">
       <button
         data-testid="play-all"
@@ -76,45 +93,35 @@ const NUDGE_MS = 15;
         (change)="jumpEveryone(+$any($event.target).value)"
       />
       <span class="readout" data-testid="readout">{{ readout() }}</span>
-    </div>
 
-    <!--
-      The decision, right under the footage it is about. A referee reviews and
-      calls it in one motion, so the buttons live here rather than in the list.
-    -->
-    <div class="verdict" data-testid="verdict">
-      <span class="prompt">Resolve as</span>
-      @for (option of resolutions; track option.value) {
-        <button
-          class="chip"
-          [attr.data-resolution]="option.value"
-          [class.chosen]="bookmark().resolution === option.value"
-          [style.--chip]="'var(--state-' + option.value + ')'"
-          (click)="resolve(option.value)"
-        >{{ option.label }}</button>
-      }
-    </div>
-
-    <div class="tiles" data-testid="review-tiles">
-      @for (angle of angles(); track angle.cameraId) {
-        <vr-review-tile
-          [angle]="angle"
-          [name]="nameFor(angle.cameraId)"
-          [lead]="angle.cameraId === leadId()"
-          [following]="dragging() && angle.cameraId !== leadId()"
-          (chosen)="leadId.set(angle.cameraId)"
-          (spanKnown)="noteSpan(angle.cameraId, $event)"
-        />
-      }
+      <!--
+        The decision, in reach of the footage it is about. A referee reviews and
+        calls it in one motion, so it lives here rather than in the list.
+      -->
+      <div class="verdict" data-testid="verdict">
+        @for (option of resolutions; track option.value) {
+          <button
+            class="chip"
+            [attr.data-resolution]="option.value"
+            [class.chosen]="bookmark().resolution === option.value"
+            [style.--chip]="'var(--state-' + option.value + ')'"
+            (click)="resolve(option.value)"
+          >{{ option.label }}</button>
+        }
+      </div>
     </div>
   `,
   styles: `
+    /* The footage takes the room that is going; the controls keep the floor. */
+    :host { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .controls {
       display: flex;
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
-      padding: 12px 0 16px;
+      flex: none;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--rule);
     }
     .scrub { flex: 1; min-width: 240px; accent-color: var(--accent); }
     .readout {
@@ -134,9 +141,21 @@ const NUDGE_MS = 15;
       border-radius: 6px;
       padding: 5px 8px;
     }
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
-    .verdict { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 0 0 16px; }
-    .prompt { font-size: 13px; color: var(--faded); }
+    /*
+      The angles share the stage rather than sitting at their natural size in a
+      corner of it: rows split the height evenly, so two cameras fill the room
+      and six still fit. Each tile letterboxes its own footage inside its share.
+    */
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      padding-bottom: 12px;
+    }
+    .verdict { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 4px; }
     .chip {
       font-size: 13px;
       padding: 7px 16px;

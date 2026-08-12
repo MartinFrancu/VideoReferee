@@ -50,6 +50,11 @@ import type { Angle } from './hub';
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
+      /* Fills the share of the stage it was given, caption included. */
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
     }
     figure.lead { border-color: var(--accent); }
     figcaption {
@@ -73,8 +78,9 @@ import type { Angle } from './hub';
     }
     .note { margin-left: auto; font-size: 12px; color: var(--faded); }
     .note.gap { color: var(--dead); }
-    .stage { position: relative; }
-    video { display: block; width: 100%; background: #000; aspect-ratio: 4 / 3; }
+    .stage { position: relative; flex: 1; min-height: 0; }
+    /* Letterboxed rather than cropped: a referee needs the whole frame. */
+    video { display: block; width: 100%; height: 100%; background: #000; object-fit: contain; }
     .veil {
       position: absolute;
       inset: 0;

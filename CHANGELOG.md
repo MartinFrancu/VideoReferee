@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.14
+
+- **D** — The operator screen is two tabs. *Cameras* holds the phones and the
+  form that adds one; *Bookmarks* holds the list down the left — BOOKMARK at its
+  top, *Mark N done* at its foot — with every angle of the chosen one filling
+  the rest and the playback controls along the bottom edge. The angles now share
+  the stage instead of sitting at their natural size, so two cameras fill it and
+  six still fit. Saving and loading moved behind a *Session* button that says so.
+
 ## 0.0.13
 
 - **D** — *Start bout* and *Stop* are gone, and the phase label beside them with

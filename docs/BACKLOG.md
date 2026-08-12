@@ -129,25 +129,28 @@ If point-counting ever arrives it can come back.
 The header now has room for a screen name (see *Split the operator screen*
 below).
 
-### Saving a session fails in the browser
+### ~~Saving a session fails in the browser~~ — done (0.0.10)
 
 *(user report: "download state has 'connection error'", on a basic hub at
 `https://192.168.1.3:3000/api/state`)*
 
-Save is an `<a href="/api/state" download>`, so the browser fetches it as a
-navigation rather than from inside the page. Reproduced working here only with
-the certificate accepted; the case that matters — a self-signed certificate
-clicked through — cannot be reached from a headless browser, so this is not yet
-diagnosed, only narrowed.
+Diagnosed by the user's own second report: typing the address into a fresh tab
+downloaded fine. That cleared the certificate and the hub, and left the anchor.
+Save was an `<a href="/api/state" download>` inside the menu, and the click that
+started the download also closed the menu — so `@if (menuOpen())` destroyed the
+anchor mid-download. The session is now fetched in-page and handed over as a
+Blob, like every other request this screen makes.
 
-The decisive check is the hub console: `saved state: X.XMB` appears if the hub
-sent it, which puts the failure entirely on the browser's side.
+### A loaded session forgets which cameras had ever joined
 
-Two properties of the current response are suspicious either way: it carries no
-`Content-Length` (chunked, because `writeHead` flushes before the body is
-known), and it is fetched outside the page. Every other request the page makes
-over that same certificate succeeds, which points at fetching the file in-page
-and handing the browser a Blob instead — which also settles the filename below.
+Found while seeding a session to look at the new tabs: every camera from a file
+reads "waiting for its QR to be scanned", even one that was filming when the
+file was saved. `parseSavedState` keeps `everJoined`, and then `loadState` in
+`src/hub/server.ts` maps each camera to `{ id, name }` before handing it to
+`CameraRegistry.restore`, which drops it.
+
+Small, but it misreports the thing the cameras tab exists to show, and it is a
+**B**: the field is saved on purpose and then discarded by accident.
 
 ### The duplicated frame near the bookmark
 
@@ -248,20 +251,21 @@ joining probably wants to be offered rather than automatic, and probably only
 while both are still undecided. Worth doing after resolutions have been used in
 anger, when it is clear how often two really are one. **Needs use.**
 
-**Split the operator screen into three.** *(user request)* Angle management,
-bookmarks during a bout, and one bookmark's detail. Everything is on one page
-today, which is why the save controls are hard to find and why the review
-screen sits below a camera list nobody is looking at mid-bout. Probably the
-largest single item here, and the one the others hang off.
+**~~Split the operator screen~~ — done.** *(user request, then specified in
+detail)* Two tabs rather than three screens: *Cameras* for the phones and adding
+one, *Bookmarks* for the list and the incident it points at — the third view is
+the stage inside the second, which is where it is wanted. BOOKMARK sits at the
+top of the list and nowhere else, by the user's own call: marking from the
+cameras tab costs a tab switch, which is worth watching at the next event.
 
-**Angle management: add a camera, and drop one.** *(user request)* Adding exists
-but lives at the bottom of the page; dropping does not exist at all, so a dead
-phone stays on the list and keeps being asked for clips it will never send.
+**Drop a camera.** *(user request)* Adding one now has its own tab; dropping
+still does not exist, so a dead phone stays on the list and keeps being asked for
+clips it will never send.
 
-**Find the save controls.** *(user request: "where are the saving buttons?")*
-They are behind the `⋯` menu, which is evidently too subtle. Either the menu
-needs to look like a menu, or saving belongs on the angle-management screen once
-the split above happens.
+**~~Find the save controls~~ — done.** *(user request: "where are the saving
+buttons?")* The `⋯` is now a *Session ⌄* button that says what it holds. It stays
+in the top bar rather than moving to the cameras tab: saving is something you do
+when something has gone wrong, which is not tied to either screen.
 
 **Arrow keys to step frames.** *(user request)* Left back, right forward, with
 hold-to-repeat at `review.holdRepeatMs`. The user's read is that this probably

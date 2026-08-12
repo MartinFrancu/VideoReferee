@@ -1,3 +1,15 @@
+/*
+  One screen, filled exactly once: the header and the notice take what they
+  need, and whichever tab is showing gets the rest. The bookmark tab depends on
+  it — its stage puts the video controls along the bottom edge.
+*/
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
 header {
   display: flex;
   align-items: center;
@@ -5,6 +17,7 @@ header {
   flex-wrap: wrap;
   padding: 16px 22px;
   border-bottom: 1px solid var(--rule);
+  flex: none;
 }
 h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 /* Present but never competing for attention — until someone needs to ask. */
@@ -24,9 +37,19 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 }
 .spacer { flex: 1; }
 
+.tabs { display: flex; gap: 4px; margin-left: 4px; }
+.tabs button {
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 15px;
+  color: var(--faded);
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button.on { background: var(--panel); color: var(--ink); font-weight: 600; }
+
 /* Session menu. Tucked away: everything in it is either rare or destructive. */
 .menu { position: relative; }
-.menu > button { font-size: 16px; line-height: 1; padding: 6px 12px; }
 .menu-items {
   position: absolute;
   right: 0;
@@ -41,12 +64,10 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
-.menu-items > a,
 .menu-items > button {
   font: inherit;
   font-size: 13.5px;
   text-align: left;
-  text-decoration: none;
   color: var(--ink);
   background: none;
   border: 0;
@@ -54,7 +75,6 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   padding: 9px 10px;
   cursor: pointer;
 }
-.menu-items > a:hover,
 .menu-items > button:hover { background: rgba(255, 255, 255, 0.07); }
 .danger { color: var(--dead); }
 
@@ -65,8 +85,49 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   cursor: pointer;
   background: var(--panel);
   border-bottom: 1px solid var(--rule);
+  flex: none;
 }
 .notice.bad { color: var(--dead); }
+
+main { flex: 1; min-height: 0; }
+
+/* Setting up, before anything is filmed: the phones, then the way to add one. */
+.cameras-tab {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  overflow: auto;
+}
+.cameras { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+/* Directly below the phones it adds to, not pinned to the bottom of the room. */
+.add {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+
+/* Working through a bout: the list on the left, the incident filling the rest. */
+.bookmarks-tab { display: grid; grid-template-columns: 292px minmax(0, 1fr); }
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  border-right: 1px solid var(--rule);
+}
+.side .list { flex: 1; min-height: 0; overflow: auto; }
+.side > button { flex: none; }
+
+.stage { min-width: 0; padding: 16px 22px; display: flex; flex-direction: column; min-height: 0; }
+.stage > .empty { margin: auto; }
+
+.empty { color: var(--faded); font-size: 14px; }
 
 /* The one action taken while something is happening in the ring. */
 .mark {
@@ -75,22 +136,9 @@ h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   background: var(--dead);
   border-color: var(--dead);
   color: #fff;
-  padding: 8px 22px;
+  padding: 10px 22px;
 }
 .mark:disabled { background: var(--rule); border-color: var(--rule); color: var(--faded); }
-
-main { padding: 22px; display: grid; gap: 22px; max-width: 1100px; }
-section h2 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--faded);
-  margin: 0 0 12px;
-  font-weight: 600;
-}
-.cameras { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
-.empty { color: var(--faded); font-size: 14px; }
-.add { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
 dialog {
   border: 1px solid var(--rule);
