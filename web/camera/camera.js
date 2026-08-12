@@ -183,6 +183,7 @@ async function uploadFor(bookmarkId) {
   uploading.add(bookmarkId);
   try {
     const response = await fetch('/api/clips', { method: 'POST', body });
+    // A refusal is the hub's own decision; it files that itself.
     log(
       response.ok
         ? `sent ${(body.length / 1024 / 1024).toFixed(1)}MB for review`
@@ -190,8 +191,10 @@ async function uploadFor(bookmarkId) {
     );
   } catch (error) {
     // The hub asks again while the footage is still in the ring, so a failure
-    // here is a delay rather than a loss.
+    // here is a delay rather than a loss — but it is the only side that can see
+    // an upload that never arrived anywhere, so it says so.
     log(`could not reach the hub: ${error.message}`);
+    send({ type: 'clipFailed', bookmarkId, reason: error.message });
   } finally {
     uploading.delete(bookmarkId);
   }

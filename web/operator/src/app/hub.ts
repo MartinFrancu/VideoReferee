@@ -66,6 +66,8 @@ export const RESOLUTIONS: readonly { value: Resolution; label: string }[] = [
 export interface Angle {
   cameraId: string;
   status: 'pending' | 'received';
+  /** Why it has not arrived, when the hub or the phone knows. */
+  note?: string;
   url?: string;
   startSessionMs?: number;
   bookmarkOffsetMs?: number;

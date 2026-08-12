@@ -112,6 +112,24 @@ describe('parseSavedState', () => {
     expect(parseSavedState(state).bookmarks[0]?.resolution).toBe('unresolved');
   });
 
+  /**
+   * The reason an angle never arrived is the whole point of sending the file to
+   * somebody, so it has to survive the trip.
+   */
+  it('carries the note explaining an angle that never arrived', () => {
+    const state = clone();
+    state.bookmarks[0]!.angles[0] = {
+      cameraId: 'cam-1',
+      status: 'pending',
+      note: 'refused: no footage covering that moment',
+    };
+    expect(parseSavedState(state).bookmarks[0]?.angles[0]).toEqual({
+      cameraId: 'cam-1',
+      status: 'pending',
+      note: 'refused: no footage covering that moment',
+    });
+  });
+
   it('accepts a state with no bookmarks and no clips', () => {
     const empty = { ...clone(), bookmarks: [], clips: [] };
     expect(parseSavedState(empty).bookmarks).toEqual([]);

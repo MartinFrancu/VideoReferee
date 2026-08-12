@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.18
+
+- **D** — An angle that has not arrived says why. `Angle` gains an optional
+  `note`, written by whoever knows: the phone when it could not send at all, the
+  hub when it refused an upload and when it stops expecting one. It survives into
+  the saved session and shows on the tile in place of "still arriving…", so a file
+  sent for troubleshooting answers the question instead of posing it. The note
+  goes when the clip lands, and a loaded file's notes are never rewritten.
+
 ## 0.0.17
 
 - **D** — The hub asks a camera again for footage it has not sent, every

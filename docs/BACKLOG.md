@@ -173,17 +173,22 @@ that blinked — all of which land in the same place.
 whether an upload was never sent, failed in flight, or was refused by the hub —
 see the next item, which is the fix for that.
 
-### An angle that is pending does not say why
+### ~~An angle that is pending does not say why~~ — done (0.0.18)
 
-The two saved sessions above could not answer the only question worth asking.
-`status: 'pending'` is all a file carries, and it means any of: the camera never
+The two saved sessions could not answer the only question worth asking.
+`status: 'pending'` was all a file carried, and it meant any of: the camera never
 got the message, the upload never started, the upload failed in transit, or the
-hub refused it (`no footage covering that moment`, `no clock estimate`, …) and
-said so only on a console nobody kept.
+hub refused it and said so only on a console nobody kept.
 
-Needs a conversation about the `Angle` shape first — a reason, and probably a
-state for "this is never coming" once the ring has moved past it. **Blocked on
-that conversation, deliberately.**
+`Angle` now carries an optional `note`, written by whichever side knows — the
+phone for an upload it could not make, the hub for one it refused and for the
+moment it stops expecting one. It shows on the tile in place of "still
+arriving…" and it survives into the file.
+
+The user chose the note **without** a third `status`, so "never coming" is said
+in words rather than in the type: the note is prefixed "never arrived — " when
+the hub gives up. If a machine ever needs to branch on that rather than a person
+read it, that is when the status is worth revisiting.
 
 ### The duplicated frame near the bookmark
 

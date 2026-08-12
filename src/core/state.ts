@@ -118,6 +118,8 @@ export function parseSavedState(input: unknown): SavedState {
       return {
         cameraId: asString(angle['cameraId'], `bookmarks[${index}].angles[${position}].cameraId`),
         status: angle['status'] === 'received' ? ('received' as const) : ('pending' as const),
+        // Why it never arrived is the reason to open the file at all.
+        ...(typeof angle['note'] === 'string' ? { note: angle['note'] } : {}),
         ...(typeof angle['url'] === 'string' ? { url: angle['url'] } : {}),
         ...(typeof angle['startSessionMs'] === 'number'
           ? { startSessionMs: angle['startSessionMs'] }

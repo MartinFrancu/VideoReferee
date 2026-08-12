@@ -24,7 +24,7 @@ import {
   type UploadHeader,
 } from '../core/protocol.js';
 import { readConfig } from '../core/config.js';
-import { shouldAskAgain } from '../core/asking.js';
+import { shouldAskAgain, stillAnswerable } from '../core/asking.js';
 import {
   STATE_FORMAT,
   isSafeClipName,
@@ -149,6 +149,8 @@ function createBookmark(triggeredBy: string): void {
 
 /** When each camera was last asked for each bookmark, keyed `bookmarkId cameraId`. */
 const askedAt = new Map<string, number>();
+/** The same keys, for angles already written off — so they are written off once. */
+const gaveUp = new Set<string>();
 
 /**
  * Ask a camera again for anything of ours it has not sent.
@@ -178,6 +180,61 @@ function chaseMissingClips(cameraId: string, socket: WebSocket): void {
     askedAt.set(key, now);
     socket.send(JSON.stringify({ type: 'stillWanted', bookmarkId: bookmark.id }));
     console.log(`asking ${cameraId.slice(0, 8)} again for ${bookmark.id.slice(0, 8)}`);
+  }
+}
+
+/**
+ * Say so, once, when an angle stops being possible.
+ *
+ * Runs on a timer rather than on a heartbeat, because the camera most likely to
+ * never answer is the one that has stopped heartbeating — and a phone that died
+ * mid-bout is exactly the case worth explaining to whoever opens the file.
+ */
+function noteAnglesGivenUpOn(): void {
+  const now = sessionNow();
+  let noted = false;
+  for (const bookmark of bookmarks.list()) {
+    for (const angle of bookmark.angles) {
+      const key = `${bookmark.id} ${angle.cameraId}`;
+      if (angle.status === 'received' || gaveUp.has(key)) continue;
+      if (stillAnswerable({
+        bookmarkSessionMs: bookmark.sessionMs,
+        now,
+        ringWindowMs: config.camera.ringWindowMs,
+        preRollMs: config.bookmark.preRollMs,
+      })) continue;
+
+      // Keeps whatever went wrong along the way: that this one is not coming is
+      // the news, but why it did not come is what the file is opened for.
+      gaveUp.add(key);
+      bookmarks.noteAngle(
+        bookmark.id,
+        angle.cameraId,
+        angle.note === undefined
+          ? 'never arrived — the phone filmed past it, so it is gone'
+          : `never arrived — ${angle.note}`
+      );
+      noted = true;
+    }
+  }
+  if (noted) tellOperators();
+}
+
+/**
+ * Record why an upload was refused, against the angle it was refused for.
+ *
+ * The body has already failed to be a clip, so nothing in it can be trusted to
+ * parse — but the header names the bookmark and the camera, and that is the
+ * whole of what is needed to file the reason where it will be read.
+ */
+function noteRefusal(body: Buffer, reason: string): void {
+  try {
+    const headerLength = body.readUInt32BE(0);
+    const header = JSON.parse(body.subarray(4, 4 + headerLength).toString()) as UploadHeader;
+    bookmarks.noteAngle(header.bookmarkId, header.cameraId, `the hub refused it: ${reason}`);
+    tellOperators();
+  } catch {
+    // An upload too malformed to say who sent it. The console has the reason.
   }
 }
 
@@ -288,6 +345,13 @@ function loadState(state: SavedState): string | null {
   heldMs.clear();
 
   askedAt.clear();
+  gaveUp.clear();
+  // Nothing in a file is still on its way — those phones are somewhere else
+  // entirely — so every angle in it is already written off, and whatever the
+  // file says about why is the last word on it rather than something to restate.
+  for (const bookmark of state.bookmarks) {
+    for (const angle of bookmark.angles) gaveUp.add(`${bookmark.id} ${angle.cameraId}`);
+  }
   cameras.restore(
     state.cameras.map((camera) => ({
       id: camera.id,
@@ -312,6 +376,7 @@ function loadState(state: SavedState): string | null {
 function resetBookmarks(): void {
   bookmarks.clear();
   askedAt.clear();
+  gaveUp.clear();
   for (const name of readdirSync(CLIPS_DIR)) {
     if (isSafeClipName(name)) rmSync(join(CLIPS_DIR, name), { force: true });
   }
@@ -490,13 +555,16 @@ async function handle(
   if (req.method === 'POST' && url.pathname === '/api/clips') {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
+    const body = Buffer.concat(chunks);
     try {
-      ingestClip(Buffer.concat(chunks));
+      ingestClip(body);
       res.writeHead(200).end('ok');
     } catch (error) {
       // A camera that cannot answer a bookmark is normal — it may have joined
-      // moments ago, or the moment may have rolled out of its ring.
+      // moments ago, or the moment may have rolled out of its ring. What is not
+      // normal is finding out weeks later and having nothing to read.
       const reason = error instanceof Error ? error.message : 'upload failed';
+      noteRefusal(body, reason);
       console.log(`clip rejected: ${reason}`);
       res.writeHead(422, { 'Content-Type': 'text/plain' }).end(reason);
     }
@@ -605,6 +673,12 @@ sockets.on('connection', (socket, req) => {
     if (message.type === 'bookmark') {
       createBookmark(cameraId);
     }
+
+    // Only the phone knows an upload it never managed to start.
+    if (message.type === 'clipFailed') {
+      bookmarks.noteAngle(message.bookmarkId, cameraId, `the phone could not send it: ${message.reason}`);
+      tellOperators();
+    }
   });
 
   socket.on('close', () => {
@@ -616,6 +690,7 @@ sockets.on('connection', (socket, req) => {
 // A ping doubles as the heartbeat: a camera that answers is both in sync and alive.
 setInterval(() => {
   tellCameras({ type: 'ping', sentAt: sessionNow() });
+  noteAnglesGivenUpOn();
   tellOperators();
 }, config.network.pingIntervalMs);
 

@@ -22,6 +22,15 @@ export type Resolution = 'unresolved' | 'red' | 'blue' | 'purple' | 'done';
 export interface Angle {
   readonly cameraId: string;
   readonly status: AngleStatus;
+  /**
+   * Why this angle has not arrived, in words, for as long as it has not.
+   *
+   * "pending" alone cannot tell a phone that never heard the request from one
+   * whose upload the hub refused, and that difference is the whole of what a
+   * saved session is opened to find out. Only ever an explanation of an absence:
+   * it goes when the clip lands.
+   */
+  readonly note?: string;
   /** Where the clip landed, once it has. */
   readonly url?: string;
   /** Session time of the clip's first frame. */
@@ -72,7 +81,21 @@ export class BookmarkLedger {
   ): void {
     const bookmark = this.#bookmarks.get(bookmarkId);
     if (!bookmark) return;
+    // No note: there is nothing left to explain once the footage is here.
     bookmark.angles.set(angle.cameraId, { ...angle, status: 'received' });
+  }
+
+  /**
+   * Record why an angle has not arrived. The latest word wins — this is the
+   * current state of an absence, not a history of one.
+   *
+   * Ignores a bookmark or a camera it does not know, and never resurrects an
+   * angle that has already arrived.
+   */
+  noteAngle(bookmarkId: string, cameraId: string, note: string): void {
+    const angle = this.#bookmarks.get(bookmarkId)?.angles.get(cameraId);
+    if (!angle || angle.status === 'received') return;
+    this.#bookmarks.get(bookmarkId)!.angles.set(cameraId, { ...angle, note });
   }
 
   /** What the referee decided about this bookmark. Unknown ids are ignored. */

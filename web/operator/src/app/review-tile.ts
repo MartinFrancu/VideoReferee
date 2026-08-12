@@ -116,7 +116,9 @@ export class ReviewTile {
    * simply stale is exactly the confusion this is here to prevent.
    */
   protected readonly hidden = computed<string | null>(() => {
-    if (this.angle().status === 'pending') return 'still arriving…';
+    // The hub says why when it knows why, and that beats "still arriving…" on a
+    // clip that stopped being on its way some time ago.
+    if (this.angle().status === 'pending') return this.angle().note ?? 'still arriving…';
     if (this.following()) return 'release the slider to bring this angle here';
     if (this.beyondFootage()) return 'no footage this far';
     return null;

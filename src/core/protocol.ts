@@ -26,7 +26,12 @@ export type CameraToHub =
   /** `deviceAt` is performance.now() on the camera — a raw reading, nothing more. */
   | { type: 'pong'; sentAt: number; deviceAt: number }
   | { type: 'recording'; heldMs: number }
-  | { type: 'bookmark' };
+  | { type: 'bookmark' }
+  /**
+   * An upload this camera could not make. Only the phone knows a request that
+   * never left it, so it is the only one who can say why an angle is missing.
+   */
+  | { type: 'clipFailed'; bookmarkId: string; reason: string };
 
 /** Anything the hub says to the operator's screen. */
 export type HubToOperator =

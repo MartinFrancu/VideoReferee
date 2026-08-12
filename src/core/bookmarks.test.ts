@@ -45,6 +45,79 @@ describe('keeping track of bookmarks', () => {
     ]);
   });
 
+  /**
+   * Why an angle has not arrived is the question a saved session is opened to
+   * answer, and "pending" alone cannot tell "the phone never heard us" from
+   * "the phone sent it and we threw it away".
+   */
+  test('keeps a note against a pending angle, saying why it has not arrived', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['mike', 'jana'] });
+
+    ledger.noteAngle(bookmark.id, 'jana', 'refused: no footage covering that moment');
+
+    expect(ledger.list()[0]?.angles).toEqual([
+      { cameraId: 'mike', status: 'pending' },
+      { cameraId: 'jana', status: 'pending', note: 'refused: no footage covering that moment' },
+    ]);
+  });
+
+  test('replaces a note rather than stacking them, so it reads as the latest word', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['jana'] });
+
+    ledger.noteAngle(bookmark.id, 'jana', 'the phone could not reach the hub');
+    ledger.noteAngle(bookmark.id, 'jana', 'refused: no clock estimate for that camera yet');
+
+    expect(ledger.list()[0]?.angles[0]?.note).toBe('refused: no clock estimate for that camera yet');
+  });
+
+  // A note explains an absence. Once the clip is here there is nothing to explain.
+  test('drops the note when the clip finally arrives', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['jana'] });
+    ledger.noteAngle(bookmark.id, 'jana', 'the phone could not reach the hub');
+
+    ledger.recordClip(bookmark.id, {
+      cameraId: 'jana',
+      url: '/clips/jana.webm',
+      startSessionMs: 3400,
+      bookmarkOffsetMs: 1600,
+    });
+
+    expect(ledger.list()[0]?.angles[0]).not.toHaveProperty('note');
+  });
+
+  /**
+   * A phone reporting a failed upload can be heard after a retry of the same
+   * upload has already succeeded. The clip is here; there is nothing to explain.
+   */
+  test('refuses to explain an angle that has already arrived', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['jana'] });
+    ledger.recordClip(bookmark.id, {
+      cameraId: 'jana',
+      url: '/clips/jana.webm',
+      startSessionMs: 3400,
+      bookmarkOffsetMs: 1600,
+    });
+
+    ledger.noteAngle(bookmark.id, 'jana', 'the phone could not reach the hub');
+
+    expect(ledger.list()[0]?.angles[0]).not.toHaveProperty('note');
+    expect(ledger.list()[0]?.angles[0]?.status).toBe('received');
+  });
+
+  test('ignores a note for a bookmark or a camera it has never heard of', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['jana'] });
+
+    ledger.noteAngle('not-a-bookmark', 'jana', 'nowhere to put this');
+    ledger.noteAngle(bookmark.id, 'petr', 'this camera was not filming');
+
+    expect(ledger.list()[0]?.angles).toEqual([{ cameraId: 'jana', status: 'pending' }]);
+  });
+
   test('ignores a clip for a bookmark it has never heard of', () => {
     const ledger = new BookmarkLedger();
 
