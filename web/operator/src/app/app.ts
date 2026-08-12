@@ -14,6 +14,7 @@ import { BookmarkList } from './bookmark-list';
 import { CameraCard } from './camera-card';
 import { ReviewStage } from './review-stage';
 import { Hub, type NewCamera } from './hub';
+import { saveBlobAs } from './save-file';
 import { savedStateFilename } from './state-filename';
 
 @Component({
@@ -109,25 +110,32 @@ export class App {
     this.resetDialog()?.nativeElement.close();
   }
 
+  /**
+   * Save the session, letting the operator choose where it goes.
+   *
+   * A session worth saving is one being sent to somebody, so knowing where it
+   * landed matters more here than for an ordinary download. Where the browser
+   * offers a picker it is used; where it does not, the file still downloads.
+   */
   protected async saveState(): Promise<void> {
     this.menuOpen.set(false);
     this.notice.set({ text: 'Saving…', bad: false });
+
+    let blob: Blob;
     try {
-      const blob = await this.hub.fetchState();
-      const filename = savedStateFilename(new Date());
-      // Anchor built, clicked and dropped here, so nothing else can remove it
-      // mid-download — which is what went wrong when it lived in the menu.
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      this.notice.set({ text: `Saved ${filename}`, bad: false });
+      blob = await this.hub.fetchState();
     } catch {
       this.notice.set({ text: 'Could not save the session', bad: true });
+      return;
+    }
+
+    const suggestedName = savedStateFilename(new Date());
+    try {
+      const saved = await saveBlobAs(blob, suggestedName);
+      // Cancelling the picker is a decision, not a failure — say nothing.
+      this.notice.set(saved ? { text: `Saved ${saved}`, bad: false } : null);
+    } catch {
+      this.notice.set({ text: 'Could not write that file', bad: true });
     }
   }
 

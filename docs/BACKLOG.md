@@ -272,11 +272,11 @@ stepping by frame)* Today it is veiled with "no footage this far". The request
 is to hide it outright. Worth checking whether the veil is appearing at all
 during frame stepping, since the report suggests it is not.
 
-**A save-as dialog with a prefilled name.** *(user request)*
-`videoreferee-TIMESTAMP`. The hub already sends that name in
-`Content-Disposition`; what is missing is the browser offering a location. Ties
-directly to the save failure in P0 — fetching in-page and downloading a Blob
-would deliver both.
+**~~A save-as dialog with a prefilled name~~ — done.** *(user request)*
+Chrome and Edge open a real dialog with `videoreferee-TIMESTAMP.json` filled in
+and the chosen name reported back; elsewhere it downloads as before. It did
+indeed come with the save failure — the same chunk pair fetched the session
+in-page, which is what made the download work at all.
 
 **Identify which camera is which.** Asked as a question: *is there a way to
 identify a camera for the user?* Nothing today ties a name in the list to a phone

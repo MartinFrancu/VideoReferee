@@ -8,6 +8,14 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.11
+
+- **D** — Saving a session asks where to put it. Chrome and Edge open a real
+  save-as dialog with `videoreferee-TIMESTAMP.json` filled in, which the operator
+  can rename; the screen then reports the name they chose. Dismissing the dialog
+  says nothing, because changing your mind is not a failure. Browsers without the
+  dialog download as before.
+
 ## 0.0.10
 
 - **B** — Saving a session downloads instead of failing. The file is fetched
