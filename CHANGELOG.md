@@ -8,6 +8,14 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.12
+
+- **B** — Three dependencies were carrying this project's version instead of
+  their own: earlier version bumps replaced every `"version": "0.0.x"` in the
+  lockfiles, not just ours. `stackback` and `typedarray` are back to the versions
+  they were actually resolved from, and a test now checks all four manifests
+  agree and no other package has been dragged along.
+
 ## 0.0.11
 
 - **D** — Saving a session asks where to put it. Chrome and Edge open a real
