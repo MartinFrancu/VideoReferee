@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   inject,
   input,
   signal,
+  viewChild,
   viewChildren,
 } from '@angular/core';
 
@@ -95,21 +97,39 @@ const NUDGE_MS = 15;
       <span class="readout" data-testid="readout">{{ readout() }}</span>
 
       <!--
-        The decision, in reach of the footage it is about. A referee reviews and
-        calls it in one motion, so it lives here rather than in the list.
+        The decision, in reach of the footage it is about. Never disabled: a
+        phone can die mid-bout, and the referee still saw what happened.
       -->
-      <div class="verdict" data-testid="verdict">
+      <button class="verdict" data-testid="mark-state" (click)="openVerdict()">Mark state…</button>
+    </div>
+
+    <dialog #verdictDialog data-testid="verdict-dialog" (close)="onDialogClosed()">
+      <h3>Mark this bookmark</h3>
+      <div class="choices">
         @for (option of resolutions; track option.value) {
-          <button
-            class="chip"
-            [attr.data-resolution]="option.value"
-            [class.chosen]="bookmark().resolution === option.value"
-            [style.--chip]="'var(--state-' + option.value + ')'"
-            (click)="resolve(option.value)"
-          >{{ option.label }}</button>
+          <label [attr.data-resolution]="option.value">
+            <input
+              type="radio"
+              name="resolution"
+              [value]="option.value"
+              [checked]="choice() === option.value"
+              (change)="choice.set(option.value)"
+            />
+            <span class="swatch" [style.background]="'var(--state-' + option.value + ')'"></span>
+            {{ option.label }}
+          </label>
         }
       </div>
-    </div>
+      <p class="actions">
+        <button data-testid="cancel-verdict" (click)="closeVerdict()">Cancel</button>
+        <button
+          class="primary"
+          data-testid="confirm-verdict"
+          [disabled]="choice() === null"
+          (click)="confirmVerdict()"
+        >OK</button>
+      </p>
+    </dialog>
   `,
   styles: `
     /* The footage takes the room that is going; the controls keep the floor. */
@@ -155,17 +175,33 @@ const NUDGE_MS = 15;
       min-height: 0;
       padding-bottom: 12px;
     }
-    .verdict { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 4px; }
-    .chip {
-      font-size: 13px;
-      padding: 7px 16px;
-      border-radius: 999px;
-      border: 1.5px solid var(--chip);
-      background: transparent;
-      color: var(--chip);
+    .verdict { margin-left: 4px; }
+
+    dialog {
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px;
+      min-width: 260px;
     }
-    /* The chosen one is filled, so the decision is obvious without reading. */
-    .chip.chosen { background: var(--chip); color: #10161c; font-weight: 650; }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+    dialog h3 { margin: 0 0 16px; font-size: 17px; }
+    .choices { display: grid; gap: 2px; }
+    .choices label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 14.5px;
+      cursor: pointer;
+    }
+    .choices label:hover { background: rgba(255, 255, 255, 0.06); }
+    .choices input { min-width: 0; margin: 0; accent-color: var(--accent); }
+    /* The colour is the decision — the word beside it is only its name. */
+    .swatch { width: 13px; height: 13px; border-radius: 50%; }
+    .actions { display: flex; justify-content: flex-end; gap: 8px; margin: 20px 0 0; }
   `,
 })
 export class ReviewStage {
@@ -228,8 +264,34 @@ export class ReviewStage {
 
   protected readonly resolutions = RESOLUTIONS;
 
-  protected resolve(resolution: Resolution): void {
-    void this.#hub.resolve(this.bookmark().id, resolution);
+  /** What is picked in the dialog. Null until something is, which OK waits for. */
+  protected readonly choice = signal<Resolution | null>(null);
+  private readonly verdictDialog = viewChild<ElementRef<HTMLDialogElement>>('verdictDialog');
+
+  /**
+   * Open with the decision already made, if there is one — so a bookmark being
+   * changed from red to blue shows what it is now, and reopening and pressing
+   * OK cannot silently mean something else.
+   */
+  protected openVerdict(): void {
+    const current = this.bookmark().resolution;
+    this.choice.set(current === 'unresolved' ? null : current);
+    this.verdictDialog()?.nativeElement.showModal();
+  }
+
+  protected confirmVerdict(): void {
+    const chosen = this.choice();
+    if (chosen) void this.#hub.resolve(this.bookmark().id, chosen);
+    this.closeVerdict();
+  }
+
+  protected closeVerdict(): void {
+    this.verdictDialog()?.nativeElement.close();
+  }
+
+  /** Escape and the backdrop close it too, and neither goes through Cancel. */
+  protected onDialogClosed(): void {
+    this.choice.set(null);
   }
 
   protected nameFor(cameraId: string): string {

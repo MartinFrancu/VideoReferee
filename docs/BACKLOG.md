@@ -258,6 +258,14 @@ the stage inside the second, which is where it is wanted. BOOKMARK sits at the
 top of the list and nowhere else, by the user's own call: marking from the
 cameras tab costs a tab switch, which is worth watching at the next event.
 
+**The operator screen has nowhere to put a test.** Every other part of this
+repo is tested; the Angular side is verified by driving a real browser at a real
+hub, script by script, and none of those scripts are kept. `tsconfig.spec.json`
+is scaffolded for vitest but nothing configures a DOM or a TestBed, so a
+component's logic — which radio is preselected, what a cancel leaves behind —
+can only be checked by hand. Not urgent while the screens are small, and worth
+doing before they are not. Infrastructure, so its own chunk either way.
+
 **Drop a camera.** *(user request)* Adding one now has its own tab; dropping
 still does not exist, so a dead phone stays on the list and keeps being asked for
 clips it will never send.

@@ -8,6 +8,14 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.15
+
+- **D** — Deciding a bookmark is a *Mark state…* button at the end of the control
+  bar, opening a dialog of radios with OK. It opens on the decision that already
+  stands, so changing red to blue shows red first, and Cancel or Escape leaves it
+  as it was. Never disabled: a phone can die mid-bout and the referee still saw
+  what happened.
+
 ## 0.0.14
 
 - **D** — The operator screen is two tabs. *Cameras* holds the phones and the
