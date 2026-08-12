@@ -40,13 +40,31 @@ describe('enrolling cameras', () => {
 
   test('cameras restored from a saved session are listed, but cannot be joined', () => {
     const registry = new CameraRegistry();
-    registry.restore([{ id: 'cam-1', name: 'mike' }]);
+    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: false }]);
 
     expect(registry.list(1000)).toEqual([
       { id: 'cam-1', name: 'mike', live: false, everJoined: false },
     ]);
     // They hold no token, so an empty one must not be a skeleton key.
     expect(registry.join('', 1000)).toBeNull();
+  });
+
+  /**
+   * The distinction above is exactly what a saved session is opened to look at,
+   * and it survived being saved — so losing it on the way back in turned every
+   * camera in the file into one whose QR was never scanned.
+   */
+  test('a camera that had joined before the session was saved is still shown as having joined', () => {
+    const registry = new CameraRegistry();
+    registry.restore([
+      { id: 'cam-1', name: 'mike', everJoined: true },
+      { id: 'cam-2', name: 'jana', everJoined: false },
+    ]);
+
+    const [mike, jana] = registry.list(1000);
+
+    expect(mike).toMatchObject({ name: 'mike', live: false, everJoined: true });
+    expect(jana).toMatchObject({ name: 'jana', live: false, everJoined: false });
   });
 
   test('a camera that has gone quiet is distinguishable from one that never joined', () => {

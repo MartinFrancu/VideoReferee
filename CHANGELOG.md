@@ -8,6 +8,13 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.16
+
+- **B** — A loaded session no longer shows every camera as one whose QR was never
+  scanned. Whether a camera had joined was saved to the file and then dropped on
+  the way back in; it now survives, so a phone that died still reads "not
+  responding" in a session opened on another laptop.
+
 ## 0.0.15
 
 - **D** — Deciding a bookmark is a *Mark state…* button at the end of the control

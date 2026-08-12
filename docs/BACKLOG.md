@@ -141,16 +141,17 @@ started the download also closed the menu — so `@if (menuOpen())` destroyed th
 anchor mid-download. The session is now fetched in-page and handed over as a
 Blob, like every other request this screen makes.
 
-### A loaded session forgets which cameras had ever joined
+### ~~A loaded session forgets which cameras had ever joined~~ — done (0.0.16)
 
-Found while seeding a session to look at the new tabs: every camera from a file
-reads "waiting for its QR to be scanned", even one that was filming when the
-file was saved. `parseSavedState` keeps `everJoined`, and then `loadState` in
-`src/hub/server.ts` maps each camera to `{ id, name }` before handing it to
-`CameraRegistry.restore`, which drops it.
+Every camera from a file read "waiting for its QR to be scanned", even one that
+was filming when the file was saved. The field was written to the file, read
+back by `parseSavedState`, and then dropped by `loadState`, which handed
+`CameraRegistry.restore` only `{ id, name }`.
 
-Small, but it misreports the thing the cameras tab exists to show, and it is a
-**B**: the field is saved on purpose and then discarded by accident.
+`restore` now takes it, and a restored camera carries it separately from
+`lastSeenAt` — nothing loaded is live, but a phone that died and a QR that was
+never scanned stay different problems, which is half of why a session gets
+opened at all.
 
 ### The duplicated frame near the bookmark
 

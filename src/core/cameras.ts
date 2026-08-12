@@ -26,6 +26,12 @@ interface Enrolment {
   readonly name: string;
   readonly token: string;
   lastSeenAt: number | null;
+  /**
+   * That this camera had already joined before the session was saved. A camera
+   * enrolled in this run proves it by having been heard from; one read out of a
+   * file cannot, because nothing in the file is speaking to us.
+   */
+  readonly joinedBeforeSaving: boolean;
 }
 
 export class CameraRegistry {
@@ -40,7 +46,7 @@ export class CameraRegistry {
   invite(name: string, _now: number): { id: string; token: string } {
     const id = crypto.randomUUID();
     const token = crypto.randomUUID();
-    this.#cameras.set(id, { id, name, token, lastSeenAt: null });
+    this.#cameras.set(id, { id, name, token, lastSeenAt: null, joinedBeforeSaving: false });
     return { id, token };
   }
 
@@ -69,11 +75,21 @@ export class CameraRegistry {
    * Loaded cameras get no join token: a saved file describes phones that were
    * filming somewhere else, and handing out their tokens would let an unrelated
    * phone claim one. They exist so bookmarks have names to show against.
+   *
+   * Whether each had joined comes in with it. Nothing loaded is live, but "this
+   * phone died" and "this QR was never scanned" are still different things to be
+   * told, and telling them apart is half of why a session gets opened.
    */
-  restore(cameras: readonly { id: string; name: string }[]): void {
+  restore(cameras: readonly { id: string; name: string; everJoined: boolean }[]): void {
     this.#cameras.clear();
     for (const camera of cameras) {
-      this.#cameras.set(camera.id, { id: camera.id, name: camera.name, token: '', lastSeenAt: null });
+      this.#cameras.set(camera.id, {
+        id: camera.id,
+        name: camera.name,
+        token: '',
+        lastSeenAt: null,
+        joinedBeforeSaving: camera.everJoined,
+      });
     }
   }
 
@@ -82,7 +98,7 @@ export class CameraRegistry {
       id: camera.id,
       name: camera.name,
       live: camera.lastSeenAt !== null && now - camera.lastSeenAt <= this.#staleAfterMs,
-      everJoined: camera.lastSeenAt !== null,
+      everJoined: camera.joinedBeforeSaving || camera.lastSeenAt !== null,
     }));
   }
 }

@@ -250,7 +250,13 @@ function loadState(state: SavedState): string | null {
   syncSamples.clear();
   heldMs.clear();
 
-  cameras.restore(state.cameras.map((camera) => ({ id: camera.id, name: camera.name })));
+  cameras.restore(
+    state.cameras.map((camera) => ({
+      id: camera.id,
+      name: camera.name,
+      everJoined: camera.everJoined,
+    }))
+  );
   bookmarks.restore(state.bookmarks);
   tellOperators();
 
