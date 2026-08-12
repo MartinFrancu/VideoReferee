@@ -30,6 +30,7 @@ until its page is reloaded.**
 | `preRollMs` | 1500 | How much footage before the bookmarked instant a clip carries. Probably too short — 4000–5000 is likelier to be what a referee wants. Raising it means raising `camera.ringWindowMs` too. |
 | `postRollMs` | 1000 | How much footage after the instant. |
 | `postRollWaitMs` | 1500 | How long a phone waits after a bookmark before uploading, so the post-roll has actually been recorded. Must be at least `postRollMs`. |
+| `askAgainEveryMs` | 5000 | How often the hub asks a camera again for footage it has not sent, for as long as that footage could still be in the phone's ring. Lower chases harder and risks asking a slow phone for a copy of an upload already in flight; the phone refuses to send the same bookmark twice at once, so the cost is a wasted message rather than wasted bandwidth. |
 
 ## `camera` — what a phone does while filming
 
@@ -67,6 +68,12 @@ broken tool rather than a bad number.
 
 **`preRollMs + postRollMs` should fit inside `ringWindowMs`**, or clips are
 quietly short at one end. Reported, not corrected.
+
+**`askAgainEveryMs` only matters below `ringWindowMs - preRollMs`.** That is how
+long a camera can still answer a bookmark — 23.5 s with the defaults — and the
+hub stops asking at that point whatever this is set to. An interval longer than
+that window means each camera is asked exactly once, which is the behaviour this
+setting exists to replace.
 
 **`postRollWaitMs` should be at least `postRollMs`**, or the phone uploads
 before it has recorded the footage after the bookmark. Reported, not corrected.

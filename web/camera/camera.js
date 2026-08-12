@@ -153,7 +153,18 @@ function showWarmUp(heldMs) {
  * means. We send the pinned prefix, the ring, and when each stretch of the ring
  * arrived on our own clock — no timecodes, no offsets, no windows (INV-2).
  */
+/**
+ * Bookmarks being uploaded right now.
+ *
+ * The hub asks again for anything it has not received, and on a slow phone the
+ * first upload can still be in flight when it does. Sending the same eight
+ * megabytes twice would make the very congestion that lost the first one.
+ */
+const uploading = new Set();
+
 async function uploadFor(bookmarkId) {
+  if (uploading.has(bookmarkId)) return;
+
   const { prefix, run, arrivals } = ring.snapshot();
   if (run.length === 0) {
     log('nothing buffered yet, cannot answer that bookmark');
@@ -169,15 +180,20 @@ async function uploadFor(bookmarkId) {
   body.set(prefix, 4 + header.length);
   body.set(run, 4 + header.length + prefix.length);
 
+  uploading.add(bookmarkId);
   try {
     const response = await fetch('/api/clips', { method: 'POST', body });
     log(
       response.ok
         ? `sent ${(body.length / 1024 / 1024).toFixed(1)}MB for review`
-        : `hub refused the upload: ${response.status}`
+        : `hub refused the upload: ${response.status} ${await response.text()}`
     );
   } catch (error) {
+    // The hub asks again while the footage is still in the ring, so a failure
+    // here is a delay rather than a loss.
     log(`could not reach the hub: ${error.message}`);
+  } finally {
+    uploading.delete(bookmarkId);
   }
 }
 
@@ -226,6 +242,14 @@ function connect() {
       log('bookmark — sending what I have');
       // Wait for the post-roll to actually be recorded before handing it over.
       setTimeout(() => uploadFor(message.bookmarkId), config.bookmark.postRollWaitMs);
+      return;
+    }
+
+    // The hub is still missing this one. The post-roll is long since recorded,
+    // so there is nothing to wait for — send what is in the ring now.
+    if (message.type === 'stillWanted') {
+      log('hub is still missing one — sending again');
+      uploadFor(message.bookmarkId);
     }
   });
 }

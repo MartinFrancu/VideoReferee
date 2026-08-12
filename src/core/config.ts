@@ -19,6 +19,12 @@ const SECTION_DEFAULTS = {
     postRollMs: 1000,
     /** How long a phone waits before uploading, so the post-roll has been recorded. */
     postRollWaitMs: 1500,
+    /**
+     * How often the hub asks a camera again for footage it has not sent, for as
+     * long as that footage could still be in the phone's ring. Long enough that
+     * an upload in flight is not asked for twice.
+     */
+    askAgainEveryMs: 5000,
   },
   /** What a phone does while filming. */
   camera: {

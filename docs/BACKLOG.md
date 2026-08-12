@@ -153,6 +153,38 @@ back by `parseSavedState`, and then dropped by `loadState`, which handed
 never scanned stay different problems, which is half of why a session gets
 opened at all.
 
+### ~~A lost upload was lost forever~~ — done (0.0.17)
+
+*(user report: "the clip never arrived", with two saved sessions)*
+
+Both files showed the same thing: cameras live and holding 24 s of footage,
+bookmarks with an angle each, every angle `pending`, no clips. Reproduced by
+dropping one POST to `/api/clips` in flight — the phone logs "could not reach
+the hub", the hub never asks again, and the bookmark stays pending while the
+footage sits in the ring for another twenty seconds and then rolls out.
+
+The hub now chases: every heartbeat is a chance to re-ask for anything that
+camera has not sent, rate-limited to `bookmark.askAgainEveryMs` and stopped once
+`ringWindowMs - preRollMs` has passed. That covers a lost message, a failed
+upload, a page that stopped running while the screen was locked, and a socket
+that blinked — all of which land in the same place.
+
+**It is not proven to be what happened to the user.** A saved state cannot say
+whether an upload was never sent, failed in flight, or was refused by the hub —
+see the next item, which is the fix for that.
+
+### An angle that is pending does not say why
+
+The two saved sessions above could not answer the only question worth asking.
+`status: 'pending'` is all a file carries, and it means any of: the camera never
+got the message, the upload never started, the upload failed in transit, or the
+hub refused it (`no footage covering that moment`, `no clock estimate`, …) and
+said so only on a console nobody kept.
+
+Needs a conversation about the `Angle` shape first — a reason, and probably a
+state for "this is never coming" once the ring has moved past it. **Blocked on
+that conversation, deliberately.**
+
 ### The duplicated frame near the bookmark
 
 Seen on one camera, on every bookmark checked. Small enough not to hurt, specific

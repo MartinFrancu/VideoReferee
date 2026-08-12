@@ -2,7 +2,8 @@
   "bookmark": {
     "preRollMs": 1500,
     "postRollMs": 1000,
-    "postRollWaitMs": 1500
+    "postRollWaitMs": 1500,
+    "askAgainEveryMs": 5000
   },
   "camera": {
     "ringWindowMs": 25000,

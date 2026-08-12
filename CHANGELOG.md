@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.17
+
+- **D** — The hub asks a camera again for footage it has not sent, every
+  `bookmark.askAgainEveryMs` (5 s) for as long as that footage could still be in
+  the phone's ring — about 23.5 s with the defaults — then stops. A bookmark was
+  broadcast once, so a single lost message or failed upload left an angle pending
+  forever with the clip still sitting on the phone. A phone will not send the
+  same bookmark twice at once, so a slow upload is never asked for in duplicate.
+
 ## 0.0.16
 
 - **B** — A loaded session no longer shows every camera as one whose QR was never

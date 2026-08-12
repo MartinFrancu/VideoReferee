@@ -24,6 +24,7 @@ import {
   type UploadHeader,
 } from '../core/protocol.js';
 import { readConfig } from '../core/config.js';
+import { shouldAskAgain } from '../core/asking.js';
 import {
   STATE_FORMAT,
   isSafeClipName,
@@ -140,8 +141,44 @@ function createBookmark(triggeredBy: string): void {
   });
 
   tellCameras({ type: 'bookmark', bookmarkId: bookmark.id, sessionMs: bookmark.sessionMs });
+  // Asked now, so the chaser waits a full interval before asking again.
+  for (const camera of filming) askedAt.set(`${bookmark.id} ${camera.id}`, bookmark.sessionMs);
   tellOperators();
   console.log(`bookmark ${bookmark.id.slice(0, 8)} — asking ${filming.length} camera(s)`);
+}
+
+/** When each camera was last asked for each bookmark, keyed `bookmarkId cameraId`. */
+const askedAt = new Map<string, number>();
+
+/**
+ * Ask a camera again for anything of ours it has not sent.
+ *
+ * A bookmark used to be broadcast once. One lost message — a phone off the
+ * Wi-Fi for a second, a screen that locked before the upload started, a POST
+ * that failed in flight — and that angle was pending forever, with the footage
+ * still sitting in the phone's ring, unasked for, until it rolled out.
+ */
+function chaseMissingClips(cameraId: string, socket: WebSocket): void {
+  const now = sessionNow();
+  for (const bookmark of bookmarks.list()) {
+    const angle = bookmark.angles.find((candidate) => candidate.cameraId === cameraId);
+    if (!angle || angle.status === 'received') continue;
+
+    const key = `${bookmark.id} ${cameraId}`;
+    const ask = shouldAskAgain({
+      bookmarkSessionMs: bookmark.sessionMs,
+      now,
+      lastAskedAt: askedAt.get(key) ?? null,
+      askAgainEveryMs: config.bookmark.askAgainEveryMs,
+      ringWindowMs: config.camera.ringWindowMs,
+      preRollMs: config.bookmark.preRollMs,
+    });
+    if (!ask || socket.readyState !== WebSocket.OPEN) continue;
+
+    askedAt.set(key, now);
+    socket.send(JSON.stringify({ type: 'stillWanted', bookmarkId: bookmark.id }));
+    console.log(`asking ${cameraId.slice(0, 8)} again for ${bookmark.id.slice(0, 8)}`);
+  }
 }
 
 /**
@@ -250,6 +287,7 @@ function loadState(state: SavedState): string | null {
   syncSamples.clear();
   heldMs.clear();
 
+  askedAt.clear();
   cameras.restore(
     state.cameras.map((camera) => ({
       id: camera.id,
@@ -273,6 +311,7 @@ function loadState(state: SavedState): string | null {
 /** End of bout: the marks go, the phones stay enrolled. */
 function resetBookmarks(): void {
   bookmarks.clear();
+  askedAt.clear();
   for (const name of readdirSync(CLIPS_DIR)) {
     if (isSafeClipName(name)) rmSync(join(CLIPS_DIR, name), { force: true });
   }
@@ -558,6 +597,9 @@ sockets.on('connection', (socket, req) => {
     if (message.type === 'recording') {
       heldMs.set(cameraId, message.heldMs);
       cameras.heartbeat(cameraId, sessionNow());
+      // Every heartbeat is a chance to chase what this camera has not sent —
+      // including the first one after it reconnects.
+      chaseMissingClips(cameraId, socket);
     }
 
     if (message.type === 'bookmark') {

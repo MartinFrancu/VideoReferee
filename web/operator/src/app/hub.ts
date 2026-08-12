@@ -14,7 +14,7 @@ export interface Camera {
 
 /** Mirrors Config in src/core/config.ts. The hub is the source of the values. */
 export interface Config {
-  bookmark: { preRollMs: number; postRollMs: number; postRollWaitMs: number };
+  bookmark: { preRollMs: number; postRollMs: number; postRollWaitMs: number; askAgainEveryMs: number };
   camera: { ringWindowMs: number; warmUpMs: number };
   review: { frameMs: number; holdRepeatMs: number; holdDelayMs: number };
   network: { pingIntervalMs: number; staleAfterMs: number };
@@ -22,7 +22,7 @@ export interface Config {
 
 /** Only what is needed before the hub has answered; then they are replaced. */
 export const FALLBACK_CONFIG: Config = {
-  bookmark: { preRollMs: 1500, postRollMs: 1000, postRollWaitMs: 1500 },
+  bookmark: { preRollMs: 1500, postRollMs: 1000, postRollWaitMs: 1500, askAgainEveryMs: 5000 },
   camera: { ringWindowMs: 25_000, warmUpMs: 20_000 },
   review: { frameMs: 33, holdRepeatMs: 200, holdDelayMs: 400 },
   network: { pingIntervalMs: 1000, staleAfterMs: 3000 },

@@ -13,7 +13,12 @@ export type HubToCamera =
   /** Sync probe. `sentAt` is session time; the camera echoes it back untouched. */
   | { type: 'ping'; sentAt: number }
   /** Every camera gets this, not only the one that tapped. */
-  | { type: 'bookmark'; bookmarkId: string; sessionMs: number };
+  | { type: 'bookmark'; bookmarkId: string; sessionMs: number }
+  /**
+   * We are still missing your footage for this one, and by our reckoning you
+   * could still have it. Sent until the clip arrives or the ring has moved on.
+   */
+  | { type: 'stillWanted'; bookmarkId: string };
 
 /** Anything a camera says to the hub. */
 export type CameraToHub =
