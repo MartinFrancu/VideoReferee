@@ -65,9 +65,9 @@ everything.
    - Your browser will warn that the connection is not private. This is
      expected: the certificate is one the laptop made for itself. Click
      **Advanced → Proceed**. Once per browser.
-2. **Add a camera** at the bottom of the page. Name it after **the person
-   holding it** — "mike", not "north". Mid-bout you will be looking for a
-   person, not a compass point.
+2. **Add a camera** on the **Cameras** tab. Name it after **the person holding
+   it** — "mike", not "north". Mid-bout you will be looking for a person, not a
+   compass point.
 3. A **QR code** appears. Scan it with that phone.
 4. **On the phone:**
    - Accept the same certificate warning. Once per phone.
@@ -83,17 +83,22 @@ everything.
 
 ## During the bout
 
-- **Anyone taps BOOKMARK** on any phone when they see something. *Every* camera
-  answers, not just that one.
-- On the laptop, each bookmark appears with a coloured dot:
+Work on the **Bookmarks** tab. The list is down the left; whichever one you pick
+fills the rest of the screen.
+
+- **Anyone taps BOOKMARK** on any phone when they see something — or the
+  **BOOKMARK** button at the top of the list, if you are at the laptop. *Every*
+  camera answers, not just the one that noticed.
+- Each bookmark appears in the list with a coloured dot:
   - **yellow, pulsing** — still collecting footage
   - **white** — every clip is in, waiting for you to look
   - **red / blue / purple / grey** — you decided
 - **Click a bookmark** to review it. Drag the slider, step frame by frame, or
-  play all angles together.
-- **Resolve it** with the buttons under the video.
-- When you have dealt with a passage of fighting, press **"Mark N done"** in the
-  top bar to clear the rest, and carry on.
+  play all angles together — the controls are along the bottom.
+- **Mark state…** at the end of that bar records what you decided. It is never
+  disabled: if a phone has died, decide anyway.
+- When you have dealt with a passage of fighting, press **"Mark N done"** at the
+  foot of the list to clear the rest, and carry on.
 
 ## When something is wrong
 
@@ -104,6 +109,7 @@ everything.
 | The laptop page works but no phone can join | You opened the hub at `localhost` — but the QR then points each phone at *itself* | Open the `https://192.168.<something>:3000/` address instead. |
 | BOOKMARK is greyed out | The phone has not buffered enough footage yet | Wait for the countdown. |
 | A camera shows "not responding" | The phone's screen locked, or it left the Wi-Fi | Wake it and reopen the page. |
+| An angle stays dark with a line of text on it | That clip did not arrive, and the text says why — the hub keeps asking for about 20 seconds before giving up | If it says the phone could not send it, check that phone is awake and on the Wi-Fi. The wording travels in the saved session, so it is worth saving one. |
 | The screen looks older than the code you pulled | The operator screen was not rebuilt | Use `npm start`, not `npm run start:hub`. |
 | Anything odd you want looked at | — | **Session menu → Save session to a file**, before touching anything else. That file contains the clips and every number behind them. |
 
