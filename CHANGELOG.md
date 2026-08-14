@@ -8,6 +8,12 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.19
+
+- **B** — The session menu button reads *Session*. It was *Session ⌄*, where the
+  glyph was meant to be a caret hinting that it opens a menu and instead read as
+  a stray character.
+
 ## 0.0.18
 
 - **D** — An angle that has not arrived says why. `Angle` gains an optional

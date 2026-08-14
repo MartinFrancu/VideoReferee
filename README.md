@@ -105,7 +105,7 @@ everything.
 | BOOKMARK is greyed out | The phone has not buffered enough footage yet | Wait for the countdown. |
 | A camera shows "not responding" | The phone's screen locked, or it left the Wi-Fi | Wake it and reopen the page. |
 | The screen looks older than the code you pulled | The operator screen was not rebuilt | Use `npm start`, not `npm run start:hub`. |
-| Anything odd you want looked at | — | **⋯ menu → Save session to a file**, before touching anything else. That file contains the clips and every number behind them. |
+| Anything odd you want looked at | — | **Session menu → Save session to a file**, before touching anything else. That file contains the clips and every number behind them. |
 
 ## When the Wi-Fi changes
 

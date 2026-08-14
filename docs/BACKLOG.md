@@ -309,7 +309,7 @@ still does not exist, so a dead phone stays on the list and keeps being asked fo
 clips it will never send.
 
 **~~Find the save controls~~ — done.** *(user request: "where are the saving
-buttons?")* The `⋯` is now a *Session ⌄* button that says what it holds. It stays
+buttons?")* The `⋯` is now a *Session* button that says what it holds. It stays
 in the top bar rather than moving to the cameras tab: saving is something you do
 when something has gone wrong, which is not tied to either screen.
 
