@@ -8,6 +8,18 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.20
+
+- **D** — The hub writes down what every clip was cut from, and can be made to
+  do it again. A record per upload — both estimates with their uncertainties and
+  every sample behind them, each cluster's timecode and whether a clip could
+  start there, the settings in force, and what came out or why nothing did — into
+  `captures/`, with the raw upload beside it for the most recent
+  `capture.keepUploads`. `npm run replay -- captures/<file>.json` prints it and
+  re-runs the decision through the same code, saying whether this build still
+  answers the way that one did. Written for refusals too, which are the ones
+  worth reading.
+
 ## 0.0.19
 
 - **B** — The session menu button reads *Session*. It was *Session ⌄*, where the

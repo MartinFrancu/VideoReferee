@@ -42,6 +42,16 @@ const SECTION_DEFAULTS = {
     /** How long a frame button must be held before it starts repeating. */
     holdDelayMs: 400,
   },
+  /** What the hub keeps about how it answered a bookmark, for looking at later. */
+  capture: {
+    /**
+     * How many raw uploads to keep beside the records, newest first. The records
+     * themselves are small and always kept; an upload is megabytes, and only the
+     * recent ones are ever wanted. The smallest this can be set to is 1, like
+     * every other setting here — to keep none, delete the folder.
+     */
+    keepUploads: 20,
+  },
   /** How the hub and the phones keep in touch. */
   network: {
     /** How often the hub pings each camera. Doubles as the heartbeat. */

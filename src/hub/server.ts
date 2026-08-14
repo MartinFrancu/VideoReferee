@@ -15,7 +15,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { cutClipForBookmark } from '../core/alignment.js';
 import { BookmarkLedger, type Resolution } from '../core/bookmarks.js';
 import { CameraRegistry } from '../core/cameras.js';
-import { readClusters, readInitSegment, readVideoTrackNumber } from '../core/media/webm.js';
+import { readClusters, readInitSegment, readVideoTrackNumber, type Cluster } from '../core/media/webm.js';
+import { captureName, captureRecord, capturesToDrop, type CaptureOutcome } from '../core/capture.js';
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
 import {
@@ -45,8 +46,11 @@ const WEB = join(ROOT, 'web');
 const OPERATOR_DIST = join(WEB, 'operator', 'dist', 'browser');
 const CERT_DIR = join(ROOT, 'certs');
 const CLIPS_DIR = join(ROOT, 'clips');
+/** What each clip was cut from, for arguing about it afterwards. */
+const CAPTURES_DIR = join(ROOT, 'captures');
 const CONFIG_FILE = join(ROOT, 'config.json');
 mkdirSync(CLIPS_DIR, { recursive: true });
+mkdirSync(CAPTURES_DIR, { recursive: true });
 
 /**
  * Settings, read once at startup.
@@ -239,6 +243,77 @@ function noteRefusal(body: Buffer, reason: string): void {
 }
 
 /**
+ * Write down what one answer to one bookmark was decided from.
+ *
+ * The hub used to work all of this out and throw it away, keeping only the clip
+ * — so a clip that came out wrong could not be argued about, and a fix could not
+ * be proven. The record is small and always written; the upload itself is kept
+ * for the most recent `capture.keepUploads`, because only recent ones are ever
+ * wanted and each is megabytes.
+ *
+ * Never allowed to break an upload: a full disk should cost the evidence, not
+ * the clip.
+ */
+function writeCapture(input: {
+  body: Buffer;
+  header: UploadHeader;
+  bookmark: { id: string; sessionMs: number };
+  camera: string;
+  syncSamples: readonly SyncSample[];
+  clock: { offsetMs: number; uncertaintyMs: number } | null;
+  originSamples: readonly { arrivedAtDeviceMs: number; mediaMs: number }[];
+  origin: { originDeviceMs: number; uncertaintyMs: number } | null;
+  videoTrack: number;
+  clusters: readonly Cluster[];
+  outcome: CaptureOutcome;
+}): void {
+  try {
+    const at = new Date();
+    const name = captureName(at, input.bookmark.id, input.header.cameraId);
+    const upload = `${name}.bin`;
+    writeFileSync(join(CAPTURES_DIR, upload), input.body);
+
+    const record = captureRecord({
+      capturedAt: at,
+      version: VERSION,
+      bookmark: input.bookmark,
+      camera: { id: input.header.cameraId, name: input.camera },
+      settings: {
+        preRollMs: config.bookmark.preRollMs,
+        postRollMs: config.bookmark.postRollMs,
+        ringWindowMs: config.camera.ringWindowMs,
+      },
+      upload: {
+        bytes: input.body.length,
+        prefixLength: input.header.prefixLength,
+        runLength: input.header.runLength,
+        keptAs: upload,
+      },
+      arrivals: input.header.arrivals,
+      syncSamples: input.syncSamples,
+      clock: input.clock,
+      originSamples: input.originSamples,
+      origin: input.origin,
+      videoTrack: input.videoTrack,
+      clusters: input.clusters,
+      outcome: input.outcome,
+    });
+    writeFileSync(join(CAPTURES_DIR, `${name}.json`), JSON.stringify(record, null, 2));
+
+    // Trim afterwards, so the newest is already on disk and cannot be the one
+    // dropped by a stale listing.
+    const uploads = readdirSync(CAPTURES_DIR).filter((file) => file.endsWith('.bin'));
+    for (const stale of capturesToDrop(uploads, config.capture.keepUploads)) {
+      rmSync(join(CAPTURES_DIR, stale), { force: true });
+      // The record stays and says which upload it had, so a replay can say the
+      // footage is no longer here rather than that there never was any.
+    }
+  } catch (error) {
+    console.log(`could not write a capture: ${(error as Error).message}`);
+  }
+}
+
+/**
  * A camera's upload. It sent opaque bytes and its own clock readings; everything
  * that turns those into an aligned clip happens here, on the hub (INV-3).
  */
@@ -250,27 +325,64 @@ function ingestClip(body: Buffer): void {
   const run = new Uint8Array(body.subarray(prefixAt + header.prefixLength));
 
   const bookmark = bookmarks.list().find((candidate) => candidate.id === header.bookmarkId);
+  // Nothing to file a capture against, and nothing to learn from one: this only
+  // happens when the bookmark was cleared while the phone was uploading.
   if (!bookmark) throw new Error('unknown bookmark');
 
   // Where this camera's own timeline sits against the hub's.
-  const clock = estimateClock(syncSamples.get(header.cameraId) ?? []);
-  if (!clock) throw new Error('no clock estimate for that camera yet');
-
+  const samples = syncSamples.get(header.cameraId) ?? [];
+  const clock = estimateClock(samples);
   const initSegment = readInitSegment(prefix);
   const clusters = readClusters(run);
-  const origin = estimateMediaOrigin(originSamples({ clusters, arrivals: header.arrivals }));
-  if (!origin) throw new Error('cannot tell when that recording started');
+  const videoTrack = readVideoTrackNumber(prefix) ?? 1;
+  const arrivalSamples = originSamples({ clusters, arrivals: header.arrivals });
+  const origin = estimateMediaOrigin(arrivalSamples);
 
-  const clip = cutClipForBookmark({
-    initSegment,
+  // Everything is worked out before anything is refused, so that a refusal is
+  // captured with as much of the reasoning as could be done.
+  const clip =
+    clock && origin
+      ? cutClipForBookmark({
+          initSegment,
+          clusters,
+          videoTrack,
+          timeline: { clock, recordingStartedAt: origin.originDeviceMs },
+          bookmarkSessionMs: bookmark.sessionMs,
+          preRollMs: config.bookmark.preRollMs,
+          postRollMs: config.bookmark.postRollMs,
+        })
+      : null;
+
+  const why =
+    clock === null
+      ? 'no clock estimate for that camera yet'
+      : origin === null
+        ? 'cannot tell when that recording started'
+        : clip === null
+          ? 'no footage covering that moment'
+          : null;
+
+  writeCapture({
+    body,
+    header,
+    bookmark,
+    camera: cameras.list(sessionNow()).find((c) => c.id === header.cameraId)?.name ?? '',
+    syncSamples: samples,
+    clock,
+    originSamples: arrivalSamples,
+    origin,
+    videoTrack,
     clusters,
-    videoTrack: readVideoTrackNumber(prefix) ?? 1,
-    timeline: { clock, recordingStartedAt: origin.originDeviceMs },
-    bookmarkSessionMs: bookmark.sessionMs,
-    preRollMs: config.bookmark.preRollMs,
-    postRollMs: config.bookmark.postRollMs,
+    outcome: clip
+      ? { cut: true, startSessionMs: clip.startSessionMs, bookmarkOffsetMs: clip.bookmarkOffsetMs, bytes: clip.bytes.length }
+      : { cut: false, why: why ?? 'refused' },
   });
-  if (!clip) throw new Error('no footage covering that moment');
+
+  // Named individually rather than by `why` so the compiler can see, from here
+  // down, that all three of them are settled.
+  if (clock === null || origin === null || clip === null) {
+    throw new Error(why ?? 'no footage covering that moment');
+  }
 
   const filename = `${header.bookmarkId}_${header.cameraId}.webm`;
   writeFileSync(join(CLIPS_DIR, filename), clip.bytes);

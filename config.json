@@ -14,6 +14,9 @@
     "holdRepeatMs": 200,
     "holdDelayMs": 400
   },
+  "capture": {
+    "keepUploads": 20
+  },
   "network": {
     "pingIntervalMs": 1000,
     "staleAfterMs": 3000

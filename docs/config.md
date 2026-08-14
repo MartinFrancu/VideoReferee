@@ -39,6 +39,22 @@ until its page is reloaded.**
 | `ringWindowMs` | 25000 | How much footage a phone keeps. The ceiling for the whole `bookmark` section. Costs memory on the phone. |
 | `warmUpMs` | 20000 | Footage a camera must hold before BOOKMARK unlocks. See below. |
 
+## `capture` — what is kept about how a bookmark was answered
+
+| Setting | Default | What it does |
+|---|---|---|
+| `keepUploads` | 20 | How many raw uploads to keep in `captures/`, newest first. Each is however many megabytes the phone sent. The small record beside each one is always kept, for every bookmark, and is what carries the numbers. |
+
+A record is written for every upload the hub tries to turn into a clip, whether
+it succeeds or not, and holds every input the decision was made from: both
+estimates with their uncertainties and every sample behind them, each cluster's
+timecode and whether it could be started from, the settings in force, and what
+came out. `npm run replay -- captures/<file>.json` prints it, and re-runs the
+decision through the same code when the upload is still there.
+
+The lowest this can be set to is 1, like every setting here. To keep none,
+delete the folder — it is remade empty at startup.
+
 ## `review` — how the review screen moves
 
 | Setting | Default | What it does |

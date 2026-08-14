@@ -3,4 +3,5 @@ dist/
 .tmp/
 certs/
 clips/
+captures/
 web/operator/.angular/

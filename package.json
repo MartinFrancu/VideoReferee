@@ -1,6 +1,6 @@
 {
   "name": "videoreferee",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "private": true,
   "type": "module",
   "description": "Referee support tool: simultaneous multi-angle video of a bout, bookmarked and reviewed side by side.",
@@ -9,6 +9,7 @@
     "start": "tsx tools/start.ts",
     "start:hub": "tsx src/hub/server.ts",
     "gen-cert": "tsx tools/gen-cert.ts",
+    "replay": "tsx tools/replay.ts",
     "build:operator": "npm --prefix web/operator install && npm --prefix web/operator run build",
     "test": "vitest run",
     "test:watch": "vitest",

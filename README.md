@@ -112,6 +112,7 @@ fills the rest of the screen.
 | An angle stays dark with a line of text on it | That clip did not arrive, and the text says why — the hub keeps asking for about 20 seconds before giving up | If it says the phone could not send it, check that phone is awake and on the Wi-Fi. The wording travels in the saved session, so it is worth saving one. |
 | The screen looks older than the code you pulled | The operator screen was not rebuilt | Use `npm start`, not `npm run start:hub`. |
 | Anything odd you want looked at | — | **Session menu → Save session to a file**, before touching anything else. That file contains the clips and every number behind them. |
+| A clip that came out wrong — misaligned, starting in the wrong place | — | The hub kept what it cut it from, in `captures/`. Send the newest pair of files from there along with the session. |
 
 ## When the Wi-Fi changes
 
@@ -134,6 +135,7 @@ the QR codes from before are stale — add the cameras again.
 | `npm run typecheck` | TypeScript, no emit. |
 | `npm run build:operator` | Install and build the operator screen by hand. |
 | `npm run gen-cert` | Make a certificate by hand. |
+| `npm run replay -- captures/<file>.json` | Re-run a bookmark the hub already answered, from what it answered with. |
 
 ## The one thing that will confuse you
 
@@ -157,6 +159,7 @@ the camera pages**: a phone reads its settings once, before it starts recording.
 src/core/      pure logic, no IO — clip cutting, clock offsets, bookmarks
                this is where the tests live
 src/hub/       the HTTPS server: moves bytes, holds state
+captures/      what each clip was cut from, newest uploads kept (gitignored)
 web/camera/    the phone page — plain JS, no build
 web/operator/  the operator screen — Angular, separate npm project
 tools/         start, certificate generation, fixture recording

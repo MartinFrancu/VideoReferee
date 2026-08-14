@@ -19,35 +19,25 @@ real bout. Three observations from that run drive most of P0:
 
 ## P0 — before anything else
 
-### Capture and replay a bookmark
+### ~~Capture and replay a bookmark~~ — done (0.0.20)
 
-**The thing that unblocks the other two observations.** A misalignment that
-cannot be reproduced cannot be fixed, and cannot be proven fixed. Today the
-evidence evaporates: the hub cuts the clip and throws away every input it used.
+Every upload the hub tries to answer leaves a record in `captures/`: both
+estimates and every sample behind them, each cluster's timecode and whether a
+clip could begin there, the settings in force, and the outcome — a cut with its
+three time domains, or the refusal and its reason. The raw upload is kept beside
+it for the most recent `capture.keepUploads`.
 
-This is cheap because of INV-2/INV-3. Everything the hub needs is already in one
-place — `ingestClip` receives the prefix bytes, the run bytes, the arrival
-readings, and reads the sync samples. Writing exactly those to a file, plus a
-replay entry point that feeds them back through `cutClipForBookmark`, turns
-"could not reproduce" into a regression test that runs in milliseconds with no
-phone, no camera and no browser.
+`npm run replay -- captures/<file>.json` prints all of it and, when the upload is
+still there, re-runs the decision through the same code the hub runs, comparing
+against what was decided at the time. A misaligned clip from a venue is now a
+case that re-runs in milliseconds with no phone, no browser and no Wi-Fi, and a
+difference between builds is reported rather than discovered.
 
-Dump, at minimum:
-
-- the raw upload, byte for byte (prefix + run + header)
-- the sync sample window for that camera, and the resulting offset *and
-  uncertainty*
-- the media origin estimate, its uncertainty, and every `(offset, mediaMs)` pair
-  it was derived from
-- the bookmark's session time, and the computed cut in all three time domains
-
-The user also asked for **view state**, and they are right: the suspicion is the
-slider and the seeking, not only the arithmetic. So also record what the review
-screen did — which tile was lead, what position each `seekTo` asked for, and what
-`currentTime` each video actually landed on. Those are different numbers, and the
-gap between "what we asked for" and "what the browser did" is invisible today.
-
-Network data is the least valuable of the three and can wait.
+**Not done: the view state.** The user asked for what the review screen did —
+which tile was lead, what each `seekTo` asked for, what `currentTime` each video
+actually landed on. The suspicion is the seeking as much as the arithmetic, and
+none of that is captured, because it happens in the browser rather than on the
+hub. That is its own chunk, and the operator screen has nowhere to write to.
 
 ### Why the first bookmark is the suspicious one
 
