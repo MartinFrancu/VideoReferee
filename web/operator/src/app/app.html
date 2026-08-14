@@ -39,6 +39,7 @@
 
     @if (menuOpen()) {
       <div class="menu-items" role="menu" data-testid="menu">
+        <button data-testid="debug-dump" (click)="writeDebugDump()">Save debug dump</button>
         <button data-testid="save-state" (click)="saveState()">Save session to a file…</button>
         <button data-testid="load-state" (click)="pickStateFile()">Load session from a file…</button>
         <button class="danger" data-testid="reset" (click)="askReset()">Clear all bookmarks…</button>

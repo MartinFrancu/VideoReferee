@@ -17,6 +17,7 @@ import { BookmarkLedger, type Resolution } from '../core/bookmarks.js';
 import { CameraRegistry } from '../core/cameras.js';
 import { readClusters, readInitSegment, readVideoTrackNumber, type Cluster } from '../core/media/webm.js';
 import { captureName, captureRecord, capturesToDrop, type CaptureOutcome } from '../core/capture.js';
+import { zipArchive, type ZipEntry } from '../core/zip.js';
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
 import {
@@ -48,9 +49,13 @@ const CERT_DIR = join(ROOT, 'certs');
 const CLIPS_DIR = join(ROOT, 'clips');
 /** What each clip was cut from, for arguing about it afterwards. */
 const CAPTURES_DIR = join(ROOT, 'captures');
+/** Where a debug dump always lands, so it can be described over a phone. */
+const DUMPS_FOLDER = 'debug-dumps';
+const DUMPS_DIR = join(ROOT, DUMPS_FOLDER);
 const CONFIG_FILE = join(ROOT, 'config.json');
 mkdirSync(CLIPS_DIR, { recursive: true });
 mkdirSync(CAPTURES_DIR, { recursive: true });
+mkdirSync(DUMPS_DIR, { recursive: true });
 
 /**
  * Settings, read once at startup.
@@ -439,6 +444,81 @@ function captureState(): SavedState {
   };
 }
 
+// ---------------------------------------------------------- debug dump ----
+//
+// Everything about what just happened, in one file, in a place that is always
+// the same. A dump is opened by somebody who was not in the room: the point is
+// that it can be sent whole, without deciding which parts matter first.
+//
+// Distinct from saving a session, which is the beginnings of revisiting an old
+// bout — that reads back in, this only goes out.
+
+/** Everything on disk that says something about this session, as zip entries. */
+function debugDumpEntries(at: Date): ZipEntry[] {
+  const encode = (value: string) => new TextEncoder().encode(value);
+  const state = captureState();
+  const entries: ZipEntry[] = [];
+
+  // Without the clip payloads: they go in as files, and inline base64 would put
+  // every one of them in twice.
+  entries.push({
+    name: 'session.json',
+    bytes: encode(JSON.stringify({ ...state, clips: state.clips.map(({ name }) => ({ name })) }, null, 2)),
+  });
+  entries.push({ name: 'config.json', bytes: encode(JSON.stringify(config, null, 2)) });
+
+  for (const name of readdirSync(CLIPS_DIR)) {
+    if (!isSafeClipName(name)) continue;
+    entries.push({ name: `clips/${name}`, bytes: new Uint8Array(readFileSync(join(CLIPS_DIR, name))) });
+  }
+
+  for (const name of readdirSync(CAPTURES_DIR)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.(json|bin)$/.test(name)) continue;
+    entries.push({ name: `captures/${name}`, bytes: new Uint8Array(readFileSync(join(CAPTURES_DIR, name))) });
+  }
+
+  const clips = entries.filter((entry) => entry.name.startsWith('clips/')).length;
+  const records = entries.filter((entry) => entry.name.endsWith('.json') && entry.name.startsWith('captures/')).length;
+  const uploads = entries.filter((entry) => entry.name.endsWith('.bin')).length;
+  const megabytes = (entries.reduce((total, entry) => total + entry.bytes.length, 0) / 1024 / 1024).toFixed(1);
+
+  entries.unshift({
+    name: 'about.txt',
+    bytes: encode(
+      [
+        `VideoReferee ${VERSION}`,
+        `dumped ${at.toISOString()}`,
+        '',
+        `${state.bookmarks.length} bookmark(s), ${state.cameras.length} camera(s)`,
+        `${clips} clip(s), ${records} capture record(s), ${uploads} raw upload(s)`,
+        `${megabytes}MB before this file was written`,
+        '',
+        'session.json   cameras, bookmarks and what each angle did or did not do',
+        'config.json    the settings in force',
+        'clips/         what the referee was shown',
+        'captures/      what each clip was cut from — .json is the numbers,',
+        '               .bin the upload itself, replayable with:',
+        '                 npm run replay -- captures/<file>.json',
+        '',
+        'The number of .bin files kept is capture.keepUploads in config.json.',
+        'They are what makes a dump large; the rest is small.',
+        '',
+      ].join('\n')
+    ),
+  });
+  return entries;
+}
+
+/** Write the dump where it always goes, and answer with what was written. */
+function writeDebugDump(): { name: string; bytes: number } {
+  const at = new Date();
+  const name = `videoreferee-debug-${at.toISOString().replace(/[:.]/g, '-').replace(/Z$/, '')}.zip`;
+  const zip = zipArchive(debugDumpEntries(at));
+  writeFileSync(join(DUMPS_DIR, name), zip);
+  console.log(`debug dump: ${DUMPS_FOLDER}/${name} (${(zip.length / 1024 / 1024).toFixed(1)}MB)`);
+  return { name, bytes: zip.length };
+}
+
 /**
  * Replace the running session with a saved one.
  *
@@ -601,6 +681,13 @@ async function handle(
       'Content-Disposition': `attachment; filename="${filename}"`,
     });
     res.end(body);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/debug-dump') {
+    const written = writeDebugDump();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ...written, folder: DUMPS_FOLDER }));
     return;
   }
 

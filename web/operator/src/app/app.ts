@@ -145,6 +145,24 @@ export class App {
     }
   }
 
+  /**
+   * Everything about this session, in one file, in the same place every time.
+   *
+   * Separate from saving a session: that file is one this hub can read back,
+   * and this one is for sending to somebody who cannot see the machine.
+   */
+  protected async writeDebugDump(): Promise<void> {
+    this.menuOpen.set(false);
+    this.notice.set({ text: 'Collecting everything…', bad: false });
+    try {
+      const { name, folder, bytes } = await this.hub.debugDump();
+      const size = bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)}KB` : `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+      this.notice.set({ text: `Wrote ${folder}/${name} (${size}) on this laptop`, bad: false });
+    } catch {
+      this.notice.set({ text: 'Could not write the debug dump', bad: true });
+    }
+  }
+
   protected async mark(): Promise<void> {
     try {
       await this.hub.bookmark();

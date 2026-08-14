@@ -1,6 +1,6 @@
 {
   "name": "videoreferee",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "private": true,
   "type": "module",
   "description": "Referee support tool: simultaneous multi-angle video of a bout, bookmarked and reviewed side by side.",

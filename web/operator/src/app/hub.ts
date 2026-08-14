@@ -170,6 +170,19 @@ export class Hub {
     return firstValueFrom(this.#http.get('/api/state', { responseType: 'blob' }));
   }
 
+  /**
+   * Ask the hub to write everything about this session into one file.
+   *
+   * It lands on the laptop rather than downloading, because it is a file to be
+   * found and sent on rather than opened, and a fixed folder can be described
+   * over a phone to somebody standing at the machine.
+   */
+  async debugDump(): Promise<{ name: string; folder: string; bytes: number }> {
+    return firstValueFrom(
+      this.#http.post<{ name: string; folder: string; bytes: number }>('/api/debug-dump', {})
+    );
+  }
+
   /** Mark this instant from the desk. Every filming camera answers, as ever. */
   async bookmark(): Promise<void> {
     await firstValueFrom(this.#http.post('/api/bookmarks', {}));

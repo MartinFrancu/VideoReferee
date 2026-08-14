@@ -8,6 +8,16 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.21
+
+- **D** — *Session → Save debug dump* writes one zip into `debug-dumps/` on the
+  laptop, holding everything about the session: the bookmarks and what each angle
+  did or did not do, the clips, every capture record and the raw uploads still
+  kept, the settings in force, and an `about.txt` saying what is what. It lands
+  in a fixed folder rather than downloading, because it is a file to find and
+  send on. The zip is written without a dependency — the container format is
+  simple, and a venue has no internet to install one from.
+
 ## 0.0.20
 
 - **D** — The hub writes down what every clip was cut from, and can be made to

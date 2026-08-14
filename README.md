@@ -111,8 +111,7 @@ fills the rest of the screen.
 | A camera shows "not responding" | The phone's screen locked, or it left the Wi-Fi | Wake it and reopen the page. |
 | An angle stays dark with a line of text on it | That clip did not arrive, and the text says why — the hub keeps asking for about 20 seconds before giving up | If it says the phone could not send it, check that phone is awake and on the Wi-Fi. The wording travels in the saved session, so it is worth saving one. |
 | The screen looks older than the code you pulled | The operator screen was not rebuilt | Use `npm start`, not `npm run start:hub`. |
-| Anything odd you want looked at | — | **Session menu → Save session to a file**, before touching anything else. That file contains the clips and every number behind them. |
-| A clip that came out wrong — misaligned, starting in the wrong place | — | The hub kept what it cut it from, in `captures/`. Send the newest pair of files from there along with the session. |
+| Anything odd you want looked at — a clip that came out wrong, an angle that never arrived, anything | — | **Session menu → Save debug dump**, before touching anything else. It writes one `.zip` into the **`debug-dumps`** folder in the project directory and tells you the name. Send that file: it holds the bookmarks, the clips, and everything the hub used to cut them. |
 
 ## When the Wi-Fi changes
 
@@ -160,6 +159,7 @@ src/core/      pure logic, no IO — clip cutting, clock offsets, bookmarks
                this is where the tests live
 src/hub/       the HTTPS server: moves bytes, holds state
 captures/      what each clip was cut from, newest uploads kept (gitignored)
+debug-dumps/   one zip per "Save debug dump", the whole session (gitignored)
 web/camera/    the phone page — plain JS, no build
 web/operator/  the operator screen — Angular, separate npm project
 tools/         start, certificate generation, fixture recording

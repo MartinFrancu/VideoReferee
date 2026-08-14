@@ -294,6 +294,20 @@ component's logic — which radio is preselected, what a cancel leaves behind �
 can only be checked by hand. Not urgent while the screens are small, and worth
 doing before they are not. Infrastructure, so its own chunk either way.
 
+**Revisit an old bout — as a feature rather than as debugging.** *(user
+request, splitting this off deliberately)* Saving and loading a session grew out
+of troubleshooting, and the debug dump has now taken that job over: it goes out
+only, in one zip, to a fixed folder. What is left under *Session → Save session
+to a file* is the beginnings of something else — opening a bout from last
+weekend and looking through it again — and it has never been designed as that.
+
+Questions it would have to answer, none of them settled: does loading merge with
+a live session or replace it (it replaces, and closes every camera); should a
+bout be named and listed rather than being a file the operator has to keep track
+of; should the hub keep them itself, so the answer to "where did it go" is never
+"wherever the browser put it". Worth doing when someone actually wants to look
+at last weekend, and not before. **Needs use.**
+
 **Drop a camera.** *(user request)* Adding one now has its own tab; dropping
 still does not exist, so a dead phone stays on the list and keeps being asked for
 clips it will never send.
