@@ -169,7 +169,7 @@ debug-dumps/   one zip per "Save debug dump", the whole session (gitignored)
 web/camera/    the phone page — plain JS, no build
 web/operator/  the operator screen — Angular, separate npm project
 tools/         start, certificate generation, fixture recording
-docs/          architecture, settings, backlog, the test list
+docs/          architecture, settings, backlog, notes, the test list
 ```
 
 The rule that keeps it testable: **the phone reports observations, the hub draws
