@@ -13,6 +13,7 @@ real bout. Three observations from that run drive most of P0:
 
 1. The clips were misaligned once, on the first bookmark, and never again.
 2. A duplicated frame near the bookmark on one camera, on every bookmark checked.
+   *Demoted to P1 after more use: real, but it does not affect a decision.*
 3. The UI is confusing.
 
 ---
@@ -180,14 +181,6 @@ in words rather than in the type: the note is prefixed "never arrived — " when
 the hub gives up. If a machine ever needs to branch on that rather than a person
 read it, that is when the status is worth revisiting.
 
-### The duplicated frame near the bookmark
-
-Seen on one camera, on every bookmark checked. Small enough not to hurt, specific
-enough to be a real clue about the cut. Suspects, in order: the keyframe snap-back
-emitting a cluster that overlaps the next one; the rebased timecodes putting two
-frames on the same instant; a truncated final cluster (see below). Needs the dump
-to tell them apart — with the raw bytes saved, this is a unit test.
-
 ---
 
 ## P1 — trust in the numbers
@@ -223,6 +216,15 @@ about is still open and now cheap to answer: 1.5 s of pre-roll is probably too
 short, and 4–5 s is likelier to be what a referee wants. That needs
 `ringWindowMs` raised with it, which costs memory on the phone. **Needs use** —
 try 4000 at the next bout and see.
+
+**The duplicated frame near the bookmark.** *(user report, then user judgement:
+"it does not seem to be an actual problem")* Seen on one camera, on every
+bookmark checked at the first bout, and demoted from P0 on the strength of using
+the tool since — it does not affect a decision. Kept because it is still a real
+clue about the cut. Suspects, in order: the keyframe snap-back emitting a cluster
+that overlaps the next one; the rebased timecodes putting two frames on the same
+instant; a truncated final cluster. Cheap to chase now rather than hard — a
+capture holds the raw bytes, so this is a unit test whenever somebody wants it.
 
 **A cut clip decodes with no missing-reference errors.** Verified by hand in
 batch 3, never automated. Needs a decoder, so it belongs at the integration level.
