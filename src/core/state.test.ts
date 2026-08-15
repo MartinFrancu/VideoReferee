@@ -112,6 +112,24 @@ describe('parseSavedState', () => {
     expect(parseSavedState(state).bookmarks[0]?.resolution).toBe('unresolved');
   });
 
+  // The whole point of the figure is being able to look at it afterwards.
+  it('carries how far out an angle could be', () => {
+    const state = clone();
+    state.bookmarks[0]!.angles[0] = {
+      cameraId: 'cam-1',
+      status: 'received',
+      url: '/clips/bm-1_cam-1.webm',
+      startSessionMs: 1,
+      bookmarkOffsetMs: 2,
+      uncertaintyMs: 241,
+    };
+    expect(parseSavedState(state).bookmarks[0]?.angles[0]?.uncertaintyMs).toBe(241);
+  });
+
+  it('reads a file from before the figure was recorded without inventing one', () => {
+    expect(parseSavedState(clone()).bookmarks[0]?.angles[0]).not.toHaveProperty('uncertaintyMs');
+  });
+
   /**
    * The reason an angle never arrived is the whole point of sending the file to
    * somebody, so it has to survive the trip.

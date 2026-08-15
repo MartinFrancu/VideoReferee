@@ -46,6 +46,33 @@ describe('keeping track of bookmarks', () => {
   });
 
   /**
+   * How far out an angle could be is computed on every upload and, until now,
+   * looked at by nobody — including on the one bookmark at a real bout that came
+   * out misaligned, where it is the number that would have said so.
+   */
+  test('records how far out a clip could be, alongside it', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['jana'] });
+
+    ledger.recordClip(bookmark.id, {
+      cameraId: 'jana',
+      url: '/clips/jana.webm',
+      startSessionMs: 3400,
+      bookmarkOffsetMs: 1600,
+      uncertaintyMs: 241,
+    });
+
+    expect(ledger.list()[0]?.angles[0]).toEqual({
+      cameraId: 'jana',
+      status: 'received',
+      url: '/clips/jana.webm',
+      startSessionMs: 3400,
+      bookmarkOffsetMs: 1600,
+      uncertaintyMs: 241,
+    });
+  });
+
+  /**
    * Why an angle has not arrived is the question a saved session is opened to
    * answer, and "pending" alone cannot tell "the phone never heard us" from
    * "the phone sent it and we threw it away".

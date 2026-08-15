@@ -41,6 +41,16 @@ const SECTION_DEFAULTS = {
     holdRepeatMs: 200,
     /** How long a frame button must be held before it starts repeating. */
     holdDelayMs: 400,
+    /**
+     * How far out an angle may be before the review screen says so.
+     *
+     * Both estimates behind a clip are bounded measurements, and this is what
+     * that bound is compared against. Expect to move it after an event with real
+     * phones: nobody has ever looked at these figures, so what is normal is not
+     * known, and a threshold that flags everything teaches as little as one that
+     * flags nothing.
+     */
+    trustedWithinMs: 100,
   },
   /** What the hub keeps about how it answered a bookmark, for looking at later. */
   capture: {

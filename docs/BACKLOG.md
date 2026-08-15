@@ -72,13 +72,23 @@ below). If the hypothesis is right, the bad bookmark had a large `uncertaintyMs`
 on at least one camera and the good ones did not — which is also the fix: refuse
 or flag a bookmark taken before the estimates have settled.
 
-### Surface the uncertainty, and refuse to pretend
+### ~~Surface the uncertainty~~ — done (0.0.24)
 
-`ClockEstimate.uncertaintyMs` and `MediaOrigin.uncertaintyMs` both exist, are
-both computed on every bookmark, and are consumed by nothing. A camera whose
-uncertainty exceeds what review needs should say so, not be silently trusted.
-This is the smallest change on this page and it is the one that would have caught
-observation 1 while it was happening.
+Both figures were computed on every bookmark and consumed by nothing. An angle
+now carries `uncertaintyMs` — the two compounded, fixed at the moment of the cut
+— and the tile says so in amber past `review.trustedWithinMs`.
+
+**Refusing was offered and declined**, in keeping with every other decision here:
+the referee is never blocked, only told. What is not done is the warm-up, which
+still measures readiness in buffered seconds as a proxy for the estimates having
+settled (see above). Now that the figure is recorded, readiness could be the real
+measurement instead — that is the natural next step, and it wants a real event's
+numbers first.
+
+**First numbers, for whoever tunes the threshold:** a fake camera on localhost,
+with nothing else running, produced 180 ms — 1 ms of clock and the rest media
+origin. If real phones are anything like that, 100 ms will flag everything and
+the threshold should move; the point of shipping it is finding out.
 
 ### ~~The camera warm-up, made visible~~ — done
 

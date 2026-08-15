@@ -397,6 +397,9 @@ function ingestClip(body: Buffer): void {
     url: `/clips/${filename}`,
     startSessionMs: clip.startSessionMs,
     bookmarkOffsetMs: clip.bookmarkOffsetMs,
+    // Added rather than combined in quadrature: these are bounds on two
+    // measurements, not standard deviations, and a bound on the pair is the sum.
+    uncertaintyMs: clock.uncertaintyMs + origin.uncertaintyMs,
   });
   tellOperators();
 

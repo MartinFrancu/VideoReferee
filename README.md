@@ -97,6 +97,10 @@ fills the rest of the screen.
   play all angles together — the controls are along the bottom.
 - **Left and right arrows** step a frame at a time without reaching for anything.
   Hold one down to walk through a hit slowly.
+- **An amber ±0.18s on a tile** means that angle's alignment is not settled: it
+  could be out by that much against the others. Nothing stops you deciding — it
+  is there so that two angles disagreeing about *when* cannot be mistaken for two
+  angles disagreeing about *what happened*.
 - **Mark state…** at the end of that bar records what you decided. It is never
   disabled: if a phone has died, decide anyway.
 - When you have dealt with a passage of fighting, press **"Mark N done"** at the

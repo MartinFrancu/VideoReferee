@@ -31,6 +31,16 @@ export interface Angle {
    * it goes when the clip lands.
    */
   readonly note?: string;
+  /**
+   * How far out this angle could be, in milliseconds, once it has arrived.
+   *
+   * The clock estimate and the media-origin estimate compounded: both are
+   * measurements with a bound on how wrong they are, and a clip carries both at
+   * once. Per angle rather than per camera because it is settled when the cut is
+   * made — a camera whose estimates improve later does not improve a clip
+   * already cut from the worse ones.
+   */
+  readonly uncertaintyMs?: number;
   /** Where the clip landed, once it has. */
   readonly url?: string;
   /** Session time of the clip's first frame. */
@@ -77,7 +87,13 @@ export class BookmarkLedger {
   /** A clip has landed. Silently ignores a bookmark we do not know. */
   recordClip(
     bookmarkId: string,
-    angle: { cameraId: string; url: string; startSessionMs: number; bookmarkOffsetMs: number }
+    angle: {
+      cameraId: string;
+      url: string;
+      startSessionMs: number;
+      bookmarkOffsetMs: number;
+      uncertaintyMs?: number;
+    }
   ): void {
     const bookmark = this.#bookmarks.get(bookmarkId);
     if (!bookmark) return;

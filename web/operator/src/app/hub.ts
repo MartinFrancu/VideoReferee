@@ -16,7 +16,7 @@ export interface Camera {
 export interface Config {
   bookmark: { preRollMs: number; postRollMs: number; postRollWaitMs: number; askAgainEveryMs: number };
   camera: { ringWindowMs: number; warmUpMs: number };
-  review: { frameMs: number; holdRepeatMs: number; holdDelayMs: number };
+  review: { frameMs: number; holdRepeatMs: number; holdDelayMs: number; trustedWithinMs: number };
   network: { pingIntervalMs: number; staleAfterMs: number };
 }
 
@@ -24,7 +24,7 @@ export interface Config {
 export const FALLBACK_CONFIG: Config = {
   bookmark: { preRollMs: 1500, postRollMs: 1000, postRollWaitMs: 1500, askAgainEveryMs: 5000 },
   camera: { ringWindowMs: 25_000, warmUpMs: 20_000 },
-  review: { frameMs: 33, holdRepeatMs: 200, holdDelayMs: 400 },
+  review: { frameMs: 33, holdRepeatMs: 200, holdDelayMs: 400, trustedWithinMs: 100 },
   network: { pingIntervalMs: 1000, staleAfterMs: 3000 },
 };
 
@@ -68,6 +68,8 @@ export interface Angle {
   status: 'pending' | 'received';
   /** Why it has not arrived, when the hub or the phone knows. */
   note?: string;
+  /** How far out this angle could be, once it has arrived. */
+  uncertaintyMs?: number;
   url?: string;
   startSessionMs?: number;
   bookmarkOffsetMs?: number;

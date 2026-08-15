@@ -12,7 +12,8 @@
   "review": {
     "frameMs": 33,
     "holdRepeatMs": 200,
-    "holdDelayMs": 400
+    "holdDelayMs": 400,
+    "trustedWithinMs": 100
   },
   "capture": {
     "keepUploads": 20

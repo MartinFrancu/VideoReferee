@@ -12,7 +12,8 @@ import {
   viewChild,
 } from '@angular/core';
 
-import type { Angle } from './hub';
+import { Hub, type Angle } from './hub';
+import { loosenessLabel } from './uncertainty';
 
 /** One angle of one bookmark. Owns its video element; the stage drives it. */
 @Component({
@@ -27,6 +28,19 @@ import type { Angle } from './hub';
         }
         @if (hidden(); as reason) {
           <span class="note" [class.gap]="beyondFootage()">{{ reason }}</span>
+        }
+        <!--
+          How far out this angle could be, said only when it is further out than
+          review.trustedWithinMs. Two angles disagreeing about *when* look
+          exactly like two angles disagreeing about *what happened*, and this is
+          the only thing on the screen that can tell a referee which it is.
+        -->
+        @if (looseness(); as bound) {
+          <span
+            class="loose"
+            data-testid="uncertainty"
+            [title]="'This angle could be out by ' + bound + '. The clock and recording-start estimates behind it are not settled.'"
+          >{{ bound }}</span>
         }
       </figcaption>
       <div class="stage">
@@ -78,6 +92,20 @@ import type { Angle } from './hub';
     }
     .note { margin-left: auto; font-size: 12px; color: var(--faded); }
     .note.gap { color: var(--dead); }
+    /* Amber, like a warming camera: usable, not yet to be trusted. */
+    .loose {
+      margin-left: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+      color: var(--warm);
+      border: 1px solid var(--warm);
+      border-radius: 4px;
+      padding: 1px 5px;
+      cursor: help;
+    }
+    /* Whichever is showing takes the right-hand end; never both pushing. */
+    .note + .loose { margin-left: 8px; }
     .stage { position: relative; flex: 1; min-height: 0; }
     /* Letterboxed rather than cropped: a referee needs the whole frame. */
     video { display: block; width: 100%; height: 100%; background: #000; object-fit: contain; }
@@ -106,6 +134,15 @@ export class ReviewTile {
   readonly spanKnown = output<{ backMs: number; forwardMs: number }>();
 
   protected readonly beyondFootage = signal(false);
+
+  // `inject` has to run here, in the injection context, not inside a computed
+  // whose callback runs later.
+  readonly #hub = inject(Hub);
+
+  /** Said only when this angle is looser than the settings call trustworthy. */
+  protected readonly looseness = computed(() =>
+    loosenessLabel(this.angle().uncertaintyMs, this.#hub.config().review.trustedWithinMs)
+  );
 
   /**
    * Why this tile is not worth looking at right now, or null if it is.

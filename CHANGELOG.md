@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.24
+
+- **D** — An angle says how far out it could be. `Angle` gains `uncertaintyMs` —
+  the clock and media-origin estimates compounded at the moment the cut was made
+  — and the review tile shows it, in amber, when it is looser than
+  `review.trustedWithinMs` (100 ms). Both figures were computed on every bookmark
+  and read by nobody, including on the one bookmark at a real bout that came out
+  misaligned. Nothing is refused or disabled: the referee decides either way.
+
 ## 0.0.23
 
 - **D** — Left and right arrows step the footage on the review screen, tapped for

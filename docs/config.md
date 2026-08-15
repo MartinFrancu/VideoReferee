@@ -62,6 +62,7 @@ delete the folder — it is remade empty at startup.
 | `frameMs` | 33 | One frame, for stepping. 33 is 30 fps; use 40 for 25 fps or 50 for 20 fps. Clips are not frame-rate tagged, so this is told rather than measured. |
 | `holdRepeatMs` | 200 | Holding a frame button steps again this often. Lower is a faster walk. |
 | `holdDelayMs` | 400 | How long a frame button must be held before it starts repeating. Keeps an ordinary click to one frame. |
+| `trustedWithinMs` | 100 | How far out an angle may be before the review screen says so, in amber, on that angle's tile. Compared against the clock and recording-start estimates added together. **Expect to move this after an event with real phones** — nobody has yet seen what normal looks like, and a threshold that flags every angle teaches as little as one that flags none. |
 
 ## `network` — how the hub and the phones keep in touch
 

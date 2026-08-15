@@ -120,6 +120,11 @@ export function parseSavedState(input: unknown): SavedState {
         status: angle['status'] === 'received' ? ('received' as const) : ('pending' as const),
         // Why it never arrived is the reason to open the file at all.
         ...(typeof angle['note'] === 'string' ? { note: angle['note'] } : {}),
+        // Absent in a file from before it was recorded, which is not the same as
+        // an angle that was certain — so it stays absent rather than becoming 0.
+        ...(typeof angle['uncertaintyMs'] === 'number'
+          ? { uncertaintyMs: angle['uncertaintyMs'] }
+          : {}),
         ...(typeof angle['url'] === 'string' ? { url: angle['url'] } : {}),
         ...(typeof angle['startSessionMs'] === 'number'
           ? { startSessionMs: angle['startSessionMs'] }
