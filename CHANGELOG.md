@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.22
+
+- **B** — A debug dump packs this session, not the whole disk. `clips/` and
+  `captures/` survive restarts, so a dump written after an afternoon carried
+  every run that laptop had ever done — 140MB of mostly last week. Only the clips
+  this session's bookmarks point at and the captures written for them go in, and
+  `about.txt` says how many files were left behind, so a lean dump does not look
+  like a broken one.
+
 ## 0.0.21
 
 - **D** — *Session → Save debug dump* writes one zip into `debug-dumps/` on the

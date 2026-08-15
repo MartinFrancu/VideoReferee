@@ -118,7 +118,18 @@ export function captureRecord(input: CaptureInput): CaptureRecord {
  */
 export function captureName(at: Date, bookmarkId: string, cameraId: string): string {
   const when = at.toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
-  return `${when}_${bookmarkId.slice(0, 8)}_${cameraId.slice(0, 8)}`;
+  return `${when}_${captureIdPrefix(bookmarkId)}_${captureIdPrefix(cameraId)}`;
+}
+
+/**
+ * How much of an id a capture's name carries.
+ *
+ * Defined once because it is written by `captureName` and read back when
+ * deciding which captures belong to a session — two places that would drift
+ * apart silently, since nothing else ever reads one of these names.
+ */
+export function captureIdPrefix(id: string): string {
+  return id.slice(0, 8);
 }
 
 /**

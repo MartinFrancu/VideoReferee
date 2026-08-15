@@ -18,6 +18,7 @@ import { CameraRegistry } from '../core/cameras.js';
 import { readClusters, readInitSegment, readVideoTrackNumber, type Cluster } from '../core/media/webm.js';
 import { captureName, captureRecord, capturesToDrop, type CaptureOutcome } from '../core/capture.js';
 import { zipArchive, type ZipEntry } from '../core/zip.js';
+import { capturesInUse, clipsInUse } from '../core/dump.js';
 import { estimateMediaOrigin, originSamples } from '../core/timeline/media-origin.js';
 import { estimateClock, type SyncSample } from '../core/timeline/clock.js';
 import {
@@ -467,15 +468,25 @@ function debugDumpEntries(at: Date): ZipEntry[] {
   });
   entries.push({ name: 'config.json', bytes: encode(JSON.stringify(config, null, 2)) });
 
-  for (const name of readdirSync(CLIPS_DIR)) {
-    if (!isSafeClipName(name)) continue;
-    entries.push({ name: `clips/${name}`, bytes: new Uint8Array(readFileSync(join(CLIPS_DIR, name))) });
+  // This session only. Both folders survive restarts, so by the afternoon they
+  // hold every run that laptop has ever done, and sending all of it helps
+  // nobody — the first dump written this way was 140MB of mostly last week.
+  const onDisk = { clips: readdirSync(CLIPS_DIR), captures: readdirSync(CAPTURES_DIR) };
+  const wantedClips = clipsInUse(state.bookmarks);
+  const wantedCaptures = capturesInUse(state.bookmarks, onDisk.captures);
+
+  for (const name of wantedClips) {
+    const file = join(CLIPS_DIR, name);
+    if (!statSync(file, { throwIfNoEntry: false })?.isFile()) continue;
+    entries.push({ name: `clips/${name}`, bytes: new Uint8Array(readFileSync(file)) });
   }
 
-  for (const name of readdirSync(CAPTURES_DIR)) {
-    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.(json|bin)$/.test(name)) continue;
+  for (const name of wantedCaptures) {
     entries.push({ name: `captures/${name}`, bytes: new Uint8Array(readFileSync(join(CAPTURES_DIR, name))) });
   }
+
+  const skipped =
+    onDisk.clips.length - wantedClips.length + (onDisk.captures.length - wantedCaptures.length);
 
   const clips = entries.filter((entry) => entry.name.startsWith('clips/')).length;
   const records = entries.filter((entry) => entry.name.endsWith('.json') && entry.name.startsWith('captures/')).length;
@@ -492,6 +503,9 @@ function debugDumpEntries(at: Date): ZipEntry[] {
         `${state.bookmarks.length} bookmark(s), ${state.cameras.length} camera(s)`,
         `${clips} clip(s), ${records} capture record(s), ${uploads} raw upload(s)`,
         `${megabytes}MB before this file was written`,
+        skipped > 0
+          ? `${skipped} file(s) in clips/ and captures/ belong to earlier runs and were left out.`
+          : 'Everything in clips/ and captures/ belongs to this session.',
         '',
         'session.json   cameras, bookmarks and what each angle did or did not do',
         'config.json    the settings in force',
