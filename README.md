@@ -95,6 +95,8 @@ fills the rest of the screen.
   - **red / blue / purple / grey** — you decided
 - **Click a bookmark** to review it. Drag the slider, step frame by frame, or
   play all angles together — the controls are along the bottom.
+- **Left and right arrows** step a frame at a time without reaching for anything.
+  Hold one down to walk through a hit slowly.
 - **Mark state…** at the end of that bar records what you decided. It is never
   disabled: if a phone has died, decide anyway.
 - When you have dealt with a passage of fighting, press **"Mark N done"** at the

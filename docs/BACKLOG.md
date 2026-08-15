@@ -317,10 +317,11 @@ buttons?")* The `⋯` is now a *Session* button that says what it holds. It stay
 in the top bar rather than moving to the cameras tab: saving is something you do
 when something has gone wrong, which is not tied to either screen.
 
-**Arrow keys to step frames.** *(user request)* Left back, right forward, with
-hold-to-repeat at `review.holdRepeatMs`. The user's read is that this probably
-replaces hold-to-repeat on the buttons rather than joining it — worth deciding
-before building both.
+**~~Arrow keys to step frames~~ — done (0.0.23).** *(user request)* Left back,
+right forward, tap for one frame and hold for a walk, at the same timings as the
+buttons. The buttons stayed rather than being replaced: the user's own words for
+them were "the button we have somewhere", which is an argument for keeping the
+visible one and adding the fast one, not for swapping.
 
 **Hide a view that cannot reach the current instant.** *(user request, while
 stepping by frame)* Today it is veiled with "no footage this far". The request

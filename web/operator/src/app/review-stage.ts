@@ -13,6 +13,7 @@ import {
 
 import { Hub, RESOLUTIONS, type Bookmark, type Camera, type Resolution } from './hub';
 import { ReviewTile } from './review-tile';
+import { stepForKey } from './review-keys';
 
 /** Beyond this the angles are visibly apart, so correct rather than nudge. */
 const HARD_RESYNC_MS = 200;
@@ -22,6 +23,17 @@ const NUDGE_MS = 15;
   selector: 'vr-review-stage',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReviewTile],
+  /*
+    The arrows work wherever you are on this screen. A referee stepping through
+    a hit is not going to find the slider and click it first, and this component
+    only exists while a bookmark is open, so the binding is gone the rest of the
+    time without anything having to remember to remove it.
+  */
+  host: {
+    '(document:keydown)': 'onKeyDown($event)',
+    '(document:keyup)': 'onKeyUp($event)',
+    '(window:blur)': 'stopStepping()',
+  },
   template: `
     <div class="tiles" data-testid="review-tiles">
       @for (angle of angles(); track angle.cameraId) {
@@ -355,6 +367,33 @@ export class ReviewStage {
     this.#holdTimer = setTimeout(() => {
       this.#holdTimer = setInterval(() => this.step(frames), holdRepeatMs);
     }, holdDelayMs);
+  }
+
+  /**
+   * Left and right walk the footage, held or tapped, the same as the buttons.
+   *
+   * Reaching for `document` rather than the component's own element: nothing on
+   * this screen has focus until something is clicked, and the point is that the
+   * keys work without having to click anything first.
+   */
+  protected onKeyDown(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const frames = stepForKey({
+      key: event.key,
+      repeat: event.repeat,
+      withModifier: event.ctrlKey || event.altKey || event.metaKey || event.shiftKey,
+      typing: /^(INPUT|SELECT|TEXTAREA)$/.test(target?.tagName ?? '') || target?.isContentEditable === true,
+      dialogOpen: document.querySelector('dialog[open]') !== null,
+    });
+    if (frames === null) return;
+
+    // Otherwise the page scrolls, and a focused slider steps a second time.
+    event.preventDefault();
+    this.startStepping(frames, event);
+  }
+
+  protected onKeyUp(event: KeyboardEvent): void {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') this.stopStepping();
   }
 
   protected stopStepping(): void {

@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.23
+
+- **D** — Left and right arrows step the footage on the review screen, tapped for
+  one frame and held for a walk, at the same `review.holdDelayMs` and
+  `holdRepeatMs` as the frame buttons — which stay. Nothing needs to be clicked
+  first. The arrows are left alone where they belong to something else: the state
+  dialog's radio buttons, a field being typed into, and anything with Ctrl, Alt,
+  Meta or Shift held.
+
 ## 0.0.22
 
 - **B** — A debug dump packs this session, not the whole disk. `clips/` and
