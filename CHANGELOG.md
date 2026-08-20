@@ -8,6 +8,15 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.25
+
+- **D** — A camera's join code can be shown again, from a **QR** button on its
+  card. It was shown once when the camera was added, so a dialog closed too early
+  meant that phone could never join. The code is the same one — the token has not
+  changed — so a phone already filming is unaffected by the asking. A camera
+  restored from a saved file holds no token and says so rather than offering a
+  code that cannot work.
+
 ## 0.0.24
 
 - **D** — An angle says how far out it could be. `Angle` gains `uncertaintyMs` —

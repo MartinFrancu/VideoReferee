@@ -63,6 +63,17 @@ export class CameraRegistry {
     return null;
   }
 
+  /**
+   * The join token of a camera we invited, for showing its code again.
+   *
+   * Null for a camera restored from a file: those hold no token on purpose, so
+   * there is no code to show and pretending otherwise would produce a QR that
+   * cannot work.
+   */
+  tokenFor(id: string): string | null {
+    return this.#cameras.get(id)?.token || null;
+  }
+
   /** A camera saying it is still there. */
   heartbeat(id: string, now: number): void {
     const camera = this.#cameras.get(id);

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 
 import { Hub, isWarmingUp, type Camera } from './hub';
 
@@ -12,7 +12,20 @@ import { Hub, isWarmingUp, type Camera } from './hub';
       [class.live]="camera().live"
       [class.warming]="warming()"
     >
-      <div class="name" data-testid="camera-name-label"><span class="pip"></span>{{ camera().name }}</div>
+      <div class="name" data-testid="camera-name-label">
+        <span class="pip"></span>{{ camera().name }}
+        <!--
+          The code is shown once when a camera is added, and a dialog closed too
+          early used to mean that phone could never join. Nothing about the
+          camera changes by asking for it again.
+        -->
+        <button
+          class="qr"
+          data-testid="show-qr"
+          title="Show this camera's join code again"
+          (click)="qrWanted.emit(); $event.stopPropagation()"
+        >QR</button>
+      </div>
       <div class="detail" data-testid="camera-detail">{{ detail() }}</div>
       @if (warming()) {
         <div class="bar" data-testid="camera-warmup"><div class="fill" [style.width.%]="percent()"></div></div>
@@ -27,6 +40,16 @@ import { Hub, isWarmingUp, type Camera } from './hub';
       padding: 14px 16px;
     }
     .name { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+    .qr {
+      margin-left: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 5px;
+      color: var(--faded);
+    }
+    .qr:hover { color: var(--ink); border-color: var(--faded); }
     .pip { width: 9px; height: 9px; border-radius: 50%; background: var(--dead); flex: none; }
     .card.live .pip { background: var(--live); }
     .card.warming .pip { background: var(--warm); }
@@ -37,6 +60,8 @@ import { Hub, isWarmingUp, type Camera } from './hub';
 })
 export class CameraCard {
   readonly camera = input.required<Camera>();
+  /** Show this camera's join code again. The screen owns the dialog. */
+  readonly qrWanted = output<void>();
 
   // `inject` has to run here, in the injection context — not inside the
   // computed below, whose callback runs later.

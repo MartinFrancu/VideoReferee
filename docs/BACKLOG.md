@@ -55,8 +55,9 @@ and the commit says why.
   Escape to leave the bookmark. Arrows already step.
 - **Hide an angle that cannot reach the instant** rather than veiling it. Check
   first whether the veil appears at all while stepping — a report suggests not.
-- **Drop a camera, and re-show its QR.** A dead phone stays on the list forever
-  and keeps being asked for clips it will never send.
+- **Drop a camera.** A phone swapped mid-tournament or added by mistake stays on
+  the list forever, is asked for clips it will never send, and can still inject
+  bookmarks. Showing its QR again is done (0.0.25).
 - **Identify which camera is which.** Flash something on the phone when its card
   is clicked — better in a hall than a thumbnail, since you are looking at the
   phone, not the screen.

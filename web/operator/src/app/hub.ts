@@ -142,6 +142,11 @@ export class Hub {
     return firstValueFrom(this.#http.post<NewCamera>('/api/cameras', { name }));
   }
 
+  /** The join code of a camera already added, so it can be scanned again. */
+  showQrFor(id: string): Promise<NewCamera> {
+    return firstValueFrom(this.#http.get<NewCamera>(`/api/cameras/qr?id=${encodeURIComponent(id)}`));
+  }
+
   /**
    * Hand a saved session back to the hub.
    *

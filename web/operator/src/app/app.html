@@ -68,7 +68,7 @@
     @if (hub.cameras().length) {
       <div class="cameras">
         @for (camera of hub.cameras(); track camera.id) {
-          <vr-camera-card [camera]="camera" />
+          <vr-camera-card [camera]="camera" (qrWanted)="showQr(camera.id)" />
         }
       </div>
     } @else {

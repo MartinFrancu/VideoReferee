@@ -67,6 +67,34 @@ describe('enrolling cameras', () => {
     expect(jana).toMatchObject({ name: 'jana', live: false, everJoined: false });
   });
 
+  /**
+   * The QR is shown once, when the camera is added, and a dialog closed by
+   * accident used to mean the phone could never join. The token behind it is
+   * still here; nothing ever asked for it again.
+   */
+  test('hands back the join token of a camera it invited, so its code can be shown again', () => {
+    const registry = new CameraRegistry();
+    const invited = registry.invite('mike', 1000);
+
+    expect(registry.tokenFor(invited.id)).toBe(invited.token);
+  });
+
+  test('has no token for a camera it has never heard of', () => {
+    expect(new CameraRegistry().tokenFor('not-a-camera')).toBeNull();
+  });
+
+  /**
+   * A camera out of a saved file holds no token — deliberately, or an unrelated
+   * phone could claim it. There is no code to show, and saying so beats showing
+   * one that cannot work.
+   */
+  test('has no token for a camera restored from a file', () => {
+    const registry = new CameraRegistry();
+    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: true }]);
+
+    expect(registry.tokenFor('cam-1')).toBeNull();
+  });
+
   test('a camera that has gone quiet is distinguishable from one that never joined', () => {
     // Different problems: one phone needs its QR scanned, the other has died.
     const registry = new CameraRegistry({ staleAfterMs: 3000 });

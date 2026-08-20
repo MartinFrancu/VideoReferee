@@ -683,6 +683,29 @@ async function handle(
     return;
   }
 
+  /**
+   * The join code of a camera already added, for a dialog closed too early or a
+   * phone that needs enrolling again. The same code as the first time: the token
+   * has not changed, so a phone that already joined is unaffected by asking.
+   */
+  if (req.method === 'GET' && url.pathname === '/api/cameras/qr') {
+    const id = url.searchParams.get('id') ?? '';
+    const camera = cameras.list(sessionNow()).find((candidate) => candidate.id === id);
+    const token = cameras.tokenFor(id);
+    if (!camera || token === null) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end(camera ? 'that camera came from a saved file and cannot be rejoined' : 'no such camera');
+      return;
+    }
+
+    const host = joinHost({ requestHost: req.headers.host, addresses: localAddresses(), port: PORT });
+    const joinUrl = `https://${host}/camera/?t=${token}`;
+    const qr = await QRCode.toString(joinUrl, { type: 'svg', margin: 1, width: 260 });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ id, name: camera.name, joinUrl, qr }));
+    return;
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/config') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify(config));

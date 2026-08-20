@@ -191,6 +191,24 @@ export class App {
     });
   }
 
+  /**
+   * Show a camera's join code again, in the dialog its first one appeared in.
+   *
+   * The same code as before — the token has not changed — so a phone already
+   * filming is unaffected by the operator asking for it.
+   */
+  protected async showQr(id: string): Promise<void> {
+    try {
+      const camera = await this.hub.showQrFor(id);
+      this.invited.set(camera);
+      this.qr.set(this.#sanitizer.bypassSecurityTrustHtml(camera.qr));
+      this.dialog()?.nativeElement.showModal();
+    } catch (error: unknown) {
+      const reason = (error as { error?: string })?.error || 'could not show that code';
+      this.notice.set({ text: reason, bad: true });
+    }
+  }
+
   protected closeDialog(): void {
     this.dialog()?.nativeElement.close();
   }
