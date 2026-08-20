@@ -19,13 +19,24 @@ export interface Camera {
    * problems: one phone has died, the other has not been picked up yet.
    */
   readonly everJoined: boolean;
+  /**
+   * Taken out of the session: asked for nothing, listened to for nothing, and
+   * unable to come back with the code it was let in with.
+   *
+   * Still here, and still named, because every angle of every past bookmark
+   * finds its camera's name by looking it up in this roster — so forgetting one
+   * would quietly rename footage that has already been reviewed.
+   */
+  readonly removed: boolean;
 }
 
 interface Enrolment {
   readonly id: string;
   readonly name: string;
-  readonly token: string;
+  /** Emptied when the camera is removed, so its old code lets nobody in. */
+  token: string;
   lastSeenAt: number | null;
+  removed: boolean;
   /**
    * That this camera had already joined before the session was saved. A camera
    * enrolled in this run proves it by having been heard from; one read out of a
@@ -46,7 +57,7 @@ export class CameraRegistry {
   invite(name: string, _now: number): { id: string; token: string } {
     const id = crypto.randomUUID();
     const token = crypto.randomUUID();
-    this.#cameras.set(id, { id, name, token, lastSeenAt: null, joinedBeforeSaving: false });
+    this.#cameras.set(id, { id, name, token, lastSeenAt: null, joinedBeforeSaving: false, removed: false });
     return { id, token };
   }
 
@@ -91,7 +102,7 @@ export class CameraRegistry {
    * phone died" and "this QR was never scanned" are still different things to be
    * told, and telling them apart is half of why a session gets opened.
    */
-  restore(cameras: readonly { id: string; name: string; everJoined: boolean }[]): void {
+  restore(cameras: readonly { id: string; name: string; everJoined: boolean; removed: boolean }[]): void {
     this.#cameras.clear();
     for (const camera of cameras) {
       this.#cameras.set(camera.id, {
@@ -100,16 +111,36 @@ export class CameraRegistry {
         token: '',
         lastSeenAt: null,
         joinedBeforeSaving: camera.everJoined,
+        removed: camera.removed,
       });
     }
+  }
+
+  /**
+   * Take a camera out of the session.
+   *
+   * Its token goes with it, so the code it was let in with — and any QR of that
+   * code still on a screen somewhere — stops working. The enrolment itself
+   * stays: the bookmarks it already answered name it from here.
+   */
+  remove(id: string): void {
+    const camera = this.#cameras.get(id);
+    if (!camera) return;
+    camera.removed = true;
+    camera.token = '';
   }
 
   list(now: number): Camera[] {
     return [...this.#cameras.values()].map((camera) => ({
       id: camera.id,
       name: camera.name,
-      live: camera.lastSeenAt !== null && now - camera.lastSeenAt <= this.#staleAfterMs,
+      // A removed camera is never live, however recently it spoke: it may still
+      // be filming, but not for us, and every caller means "will answer a
+      // bookmark" when it asks.
+      live:
+        !camera.removed && camera.lastSeenAt !== null && now - camera.lastSeenAt <= this.#staleAfterMs,
       everJoined: camera.joinedBeforeSaving || camera.lastSeenAt !== null,
+      removed: camera.removed,
     }));
   }
 }

@@ -68,7 +68,11 @@
     @if (hub.cameras().length) {
       <div class="cameras">
         @for (camera of hub.cameras(); track camera.id) {
-          <vr-camera-card [camera]="camera" (qrWanted)="showQr(camera.id)" />
+          <vr-camera-card
+            [camera]="camera"
+            (qrWanted)="showQr(camera.id)"
+            (removeWanted)="askRemove(camera)"
+          />
         }
       </div>
     } @else {
@@ -137,6 +141,21 @@
   <div class="qr" data-testid="qr" [innerHTML]="qr()"></div>
   <div class="joinUrl" data-testid="join-url">{{ invited()?.joinUrl }}</div>
   <p class="actions"><button data-testid="close-qr" (click)="closeDialog()">Done</button></p>
+</dialog>
+
+<dialog #removeDialog data-testid="remove-dialog">
+  <h3>Remove {{ removing()?.name }}?</h3>
+  <p>
+    That phone stops being asked for anything and cannot rejoin with the code it
+    has — you would add it again to bring it back. Clips it has already sent stay,
+    and the bookmarks it answered keep its name.
+  </p>
+  <p class="actions">
+    <button data-testid="cancel-remove" (click)="cancelRemove()">Cancel</button>
+    <button class="danger" data-testid="confirm-remove" (click)="confirmRemove()">
+      Remove camera
+    </button>
+  </p>
 </dialog>
 
 <dialog #resetDialog data-testid="reset-dialog">

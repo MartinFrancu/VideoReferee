@@ -8,6 +8,8 @@ export interface Camera {
   name: string;
   live: boolean;
   everJoined: boolean;
+  /** Taken out of the session: asked for nothing, and unable to come back. */
+  removed: boolean;
   syncUncertaintyMs: number | null;
   heldMs: number | null;
 }
@@ -188,6 +190,11 @@ export class Hub {
     return firstValueFrom(
       this.#http.post<{ name: string; folder: string; bytes: number }>('/api/debug-dump', {})
     );
+  }
+
+  /** Take a camera out of the session: asked for nothing, unable to return. */
+  async removeCamera(id: string): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/cameras/remove', { id }));
   }
 
   /** Mark this instant from the desk. Every filming camera answers, as ever. */

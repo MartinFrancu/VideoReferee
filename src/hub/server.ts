@@ -172,6 +172,9 @@ const gaveUp = new Set<string>();
  */
 function chaseMissingClips(cameraId: string, socket: WebSocket): void {
   const now = sessionNow();
+  // Its socket is closed, so this should be unreachable — but a removed camera
+  // is asked for nothing, and that is worth being true rather than implied.
+  if (cameras.list(now).find((camera) => camera.id === cameraId)?.removed) return;
   for (const bookmark of bookmarks.list()) {
     const angle = bookmark.angles.find((candidate) => candidate.cameraId === cameraId);
     if (!angle || angle.status === 'received') continue;
@@ -334,6 +337,11 @@ function ingestClip(body: Buffer): void {
   // Nothing to file a capture against, and nothing to learn from one: this only
   // happens when the bookmark was cleared while the phone was uploading.
   if (!bookmark) throw new Error('unknown bookmark');
+
+  // A phone can be removed while its upload is in flight. Its footage is no
+  // longer ours to take, and the angle has already been written off.
+  const sender = cameras.list(sessionNow()).find((candidate) => candidate.id === header.cameraId);
+  if (sender?.removed) throw new Error('that camera was removed from the session');
 
   // Where this camera's own timeline sits against the hub's.
   const samples = syncSamples.get(header.cameraId) ?? [];
@@ -566,6 +574,7 @@ function loadState(state: SavedState): string | null {
       id: camera.id,
       name: camera.name,
       everJoined: camera.everJoined,
+      removed: camera.removed,
     }))
   );
   bookmarks.restore(state.bookmarks);
@@ -703,6 +712,43 @@ async function handle(
     const qr = await QRCode.toString(joinUrl, { type: 'svg', margin: 1, width: 260 });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ id, name: camera.name, joinUrl, qr }));
+    return;
+  }
+
+  /**
+   * Take a camera out of the session.
+   *
+   * Its socket closes and its token dies, so it cannot come back with the code
+   * it had. The enrolment stays, named, because bookmarks it already answered
+   * find its name there — and the clips it already sent stay too: that footage
+   * is real, and decisions may rest on it.
+   */
+  if (req.method === 'POST' && url.pathname === '/api/cameras/remove') {
+    const body = (await readJson(req)) as { id?: string };
+    const id = body.id ?? '';
+    const camera = cameras.list(sessionNow()).find((candidate) => candidate.id === id);
+    if (!camera) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('no such camera');
+      return;
+    }
+
+    cameras.remove(id);
+    cameraSockets.get(id)?.close();
+    cameraSockets.delete(id);
+
+    // Anything it had not sent is never coming now, and saying so beats leaving
+    // a bookmark pulsing yellow for a phone that has been shown the door.
+    for (const bookmark of bookmarks.list()) {
+      for (const angle of bookmark.angles) {
+        if (angle.cameraId !== id || angle.status === 'received') continue;
+        gaveUp.add(`${bookmark.id} ${id}`);
+        bookmarks.noteAngle(bookmark.id, id, 'never arrived — this camera was removed from the session');
+      }
+    }
+
+    tellOperators();
+    console.log(`removed camera ${camera.name} (${id.slice(0, 8)})`);
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
     return;
   }
 

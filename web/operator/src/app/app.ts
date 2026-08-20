@@ -13,7 +13,7 @@ import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { BookmarkList } from './bookmark-list';
 import { CameraCard } from './camera-card';
 import { ReviewStage } from './review-stage';
-import { Hub, type NewCamera } from './hub';
+import { Hub, type Camera, type NewCamera } from './hub';
 import { saveBlobAs } from './save-file';
 import { savedStateFilename } from './state-filename';
 
@@ -60,6 +60,7 @@ export class App {
 
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('qrDialog');
   private readonly resetDialog = viewChild<ElementRef<HTMLDialogElement>>('resetDialog');
+  private readonly removeDialog = viewChild<ElementRef<HTMLDialogElement>>('removeDialog');
   private readonly stateFile = viewChild<ElementRef<HTMLInputElement>>('stateFile');
 
   /** The session menu: saving, loading, and clearing out after a bout. */
@@ -189,6 +190,36 @@ export class App {
       this.qr.set(this.#sanitizer.bypassSecurityTrustHtml(camera.qr));
       this.dialog()?.nativeElement.showModal();
     });
+  }
+
+  /**
+   * Removing a camera is asked about first: it cannot be undone from here, and
+   * the phone has to be added again to come back.
+   */
+  protected readonly removing = signal<Camera | null>(null);
+
+  protected askRemove(camera: Camera): void {
+    this.removing.set(camera);
+    this.removeDialog()?.nativeElement.showModal();
+  }
+
+  protected cancelRemove(): void {
+    this.removeDialog()?.nativeElement.close();
+    this.removing.set(null);
+  }
+
+  protected async confirmRemove(): Promise<void> {
+    const camera = this.removing();
+    this.removeDialog()?.nativeElement.close();
+    this.removing.set(null);
+    if (!camera) return;
+
+    try {
+      await this.hub.removeCamera(camera.id);
+      this.notice.set({ text: `${camera.name} removed from the session`, bad: false });
+    } catch {
+      this.notice.set({ text: `Could not remove ${camera.name}`, bad: true });
+    }
   }
 
   /**

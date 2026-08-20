@@ -8,6 +8,18 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.26
+
+- **D** — A camera can be taken out of the session, from an **✕** on its card
+  behind a confirmation. It stops being asked for anything: no new bookmark
+  includes it, nothing chases it for footage, an upload still in flight is
+  refused, and its join code dies so it cannot come back with the QR it has. It
+  stays on the list, greyed and named — every angle of every past bookmark finds
+  its camera's name there — and the clips it already sent stay, because that
+  footage is real. Anything it had not sent is noted "never arrived — this camera
+  was removed from the session". A refused phone now stops reconnecting instead
+  of knocking every 1.5 s forever.
+
 ## 0.0.25
 
 - **D** — A camera's join code can be shown again, from a **QR** button on its

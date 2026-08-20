@@ -156,6 +156,9 @@ export function parseSavedState(input: unknown): SavedState {
       name: asString(camera['name'], `cameras[${index}].name`),
       live: false, // Nothing loaded from a file is filming now.
       everJoined: camera['everJoined'] === true,
+      // A file from before cameras could be removed has none, which is the same
+      // as none of them having been.
+      removed: camera['removed'] === true,
       heldMs: typeof camera['heldMs'] === 'number' ? camera['heldMs'] : null,
       syncUncertaintyMs:
         typeof camera['syncUncertaintyMs'] === 'number' ? camera['syncUncertaintyMs'] : null,

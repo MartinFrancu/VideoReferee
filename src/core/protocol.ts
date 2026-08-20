@@ -43,6 +43,8 @@ export interface CameraView {
   readonly name: string;
   readonly live: boolean;
   readonly everJoined: boolean;
+  /** Taken out of the session: asked for nothing, and unable to come back. */
+  readonly removed: boolean;
   /** How much footage this camera is holding, in milliseconds. */
   readonly heldMs: number | null;
   /** How far this camera's clock estimate could be wrong, once known. */

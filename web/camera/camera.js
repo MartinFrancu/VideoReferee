@@ -35,6 +35,8 @@ let ring = new ChunkRing();
 let socket = null;
 /** Assigned by the hub when we join; the upload has no socket to be traced to. */
 let cameraId = null;
+/** The hub has refused this code. Reconnecting would only be refused again. */
+let refused = false;
 
 function log(message) {
   const line = `${new Date().toLocaleTimeString()}  ${message}`;
@@ -211,6 +213,7 @@ function connect() {
   });
 
   socket.addEventListener('close', () => {
+    if (refused) return;
     setState('reconnecting');
     setTimeout(connect, 1500);
   });
@@ -230,8 +233,12 @@ function connect() {
     }
 
     if (message.type === 'rejected') {
+      // Stop knocking. The hub has refused this code, and it will refuse it
+      // again in a second and a half and every second and a half after that —
+      // which is a phone that looks busy while being no use to anybody.
+      refused = true;
       setState(message.reason);
-      log(`refused: ${message.reason}`);
+      log(`refused: ${message.reason} — this phone is not part of the session`);
       return;
     }
 

@@ -11,6 +11,7 @@ import { Hub, isWarmingUp, type Camera } from './hub';
       data-testid="camera"
       [class.live]="camera().live"
       [class.warming]="warming()"
+      [class.removed]="camera().removed"
     >
       <div class="name" data-testid="camera-name-label">
         <span class="pip"></span>{{ camera().name }}
@@ -19,12 +20,20 @@ import { Hub, isWarmingUp, type Camera } from './hub';
           early used to mean that phone could never join. Nothing about the
           camera changes by asking for it again.
         -->
-        <button
-          class="qr"
-          data-testid="show-qr"
-          title="Show this camera's join code again"
-          (click)="qrWanted.emit(); $event.stopPropagation()"
-        >QR</button>
+        @if (!camera().removed) {
+          <button
+            class="qr"
+            data-testid="show-qr"
+            title="Show this camera's join code again"
+            (click)="qrWanted.emit(); $event.stopPropagation()"
+          >QR</button>
+          <button
+            class="qr remove"
+            data-testid="remove-camera"
+            title="Take this camera out of the session"
+            (click)="removeWanted.emit(); $event.stopPropagation()"
+          >✕</button>
+        }
       </div>
       <div class="detail" data-testid="camera-detail">{{ detail() }}</div>
       @if (warming()) {
@@ -50,6 +59,10 @@ import { Hub, isWarmingUp, type Camera } from './hub';
       color: var(--faded);
     }
     .qr:hover { color: var(--ink); border-color: var(--faded); }
+    .remove { margin-left: 4px; }
+    .remove:hover { color: var(--dead); border-color: var(--dead); }
+    /* Still here so its old bookmarks can name it, and visibly out of the way. */
+    .card.removed { opacity: 0.55; }
     .pip { width: 9px; height: 9px; border-radius: 50%; background: var(--dead); flex: none; }
     .card.live .pip { background: var(--live); }
     .card.warming .pip { background: var(--warm); }
@@ -62,6 +75,8 @@ export class CameraCard {
   readonly camera = input.required<Camera>();
   /** Show this camera's join code again. The screen owns the dialog. */
   readonly qrWanted = output<void>();
+  /** Take this camera out of the session. The screen asks first. */
+  readonly removeWanted = output<void>();
 
   // `inject` has to run here, in the injection context — not inside the
   // computed below, whose callback runs later.
@@ -85,6 +100,8 @@ export class CameraCard {
    */
   protected readonly detail = computed(() => {
     const camera = this.camera();
+    // Removed first: it is also "not live", but for a reason the operator chose.
+    if (camera.removed) return 'removed — asked for nothing, and cannot rejoin';
     if (!camera.live) return camera.everJoined ? 'not responding' : 'waiting for its QR to be scanned';
 
     if (this.warming()) {

@@ -14,7 +14,7 @@ const valid: SavedState = {
   savedAt: '2026-08-08T20:14:33.000Z',
   version: '0.0.2',
   cameras: [
-    { id: 'cam-1', name: 'mike', live: true, everJoined: true, heldMs: 20_000, syncUncertaintyMs: 4 },
+    { id: 'cam-1', name: 'mike', live: true, everJoined: true, removed: false, heldMs: 20_000, syncUncertaintyMs: 4 },
   ],
   bookmarks: [
     {

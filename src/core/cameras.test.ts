@@ -40,10 +40,10 @@ describe('enrolling cameras', () => {
 
   test('cameras restored from a saved session are listed, but cannot be joined', () => {
     const registry = new CameraRegistry();
-    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: false }]);
+    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: false, removed: false }]);
 
     expect(registry.list(1000)).toEqual([
-      { id: 'cam-1', name: 'mike', live: false, everJoined: false },
+      { id: 'cam-1', name: 'mike', live: false, everJoined: false, removed: false },
     ]);
     // They hold no token, so an empty one must not be a skeleton key.
     expect(registry.join('', 1000)).toBeNull();
@@ -57,8 +57,8 @@ describe('enrolling cameras', () => {
   test('a camera that had joined before the session was saved is still shown as having joined', () => {
     const registry = new CameraRegistry();
     registry.restore([
-      { id: 'cam-1', name: 'mike', everJoined: true },
-      { id: 'cam-2', name: 'jana', everJoined: false },
+      { id: 'cam-1', name: 'mike', everJoined: true, removed: false },
+      { id: 'cam-2', name: 'jana', everJoined: false, removed: false },
     ]);
 
     const [mike, jana] = registry.list(1000);
@@ -90,9 +90,86 @@ describe('enrolling cameras', () => {
    */
   test('has no token for a camera restored from a file', () => {
     const registry = new CameraRegistry();
-    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: true }]);
+    registry.restore([{ id: 'cam-1', name: 'mike', everJoined: true, removed: false }]);
 
     expect(registry.tokenFor('cam-1')).toBeNull();
+  });
+
+  describe('removing a camera from the session', () => {
+    const joined = () => {
+      const registry = new CameraRegistry({ staleAfterMs: 3000 });
+      const invited = registry.invite('mike', 1000);
+      registry.join(invited.token, 1200);
+      return { registry, ...invited };
+    };
+
+    test('marks it removed, and stops calling it live however recently it spoke', () => {
+      const { registry, id } = joined();
+
+      registry.remove(id);
+
+      expect(registry.list(1300)).toEqual([
+        expect.objectContaining({ id, name: 'mike', live: false, removed: true }),
+      ]);
+    });
+
+    /**
+     * The name has to survive. Every angle of every past bookmark names its
+     * camera by looking it up here, so a forgotten camera would quietly rename
+     * footage that has already been reviewed.
+     */
+    test('keeps its name, for the bookmarks it already answered', () => {
+      const { registry, id } = joined();
+
+      registry.remove(id);
+
+      expect(registry.list(1300)[0]?.name).toBe('mike');
+    });
+
+    // The phone is not asked to leave — it is stopped from coming back.
+    test('refuses the token it was let in with', () => {
+      const { registry, id, token } = joined();
+
+      registry.remove(id);
+
+      expect(registry.join(token, 1400)).toBeNull();
+      expect(registry.tokenFor(id)).toBeNull();
+    });
+
+    test('leaves every other camera alone', () => {
+      const registry = new CameraRegistry();
+      const mike = registry.invite('mike', 1000);
+      const jana = registry.invite('jana', 1000);
+
+      registry.remove(mike.id);
+
+      expect(registry.list(1100).find((c) => c.id === jana.id)).toMatchObject({ removed: false });
+      expect(registry.join(jana.token, 1100)).toBe(jana.id);
+    });
+
+    test('ignores a camera it has never heard of', () => {
+      const { registry, id } = joined();
+
+      registry.remove('not-a-camera');
+
+      expect(registry.list(1300)[0]).toMatchObject({ id, removed: false });
+    });
+
+    test('a camera that was never removed says so', () => {
+      const { registry } = joined();
+      expect(registry.list(1300)[0]?.removed).toBe(false);
+    });
+
+    // A session saved with a camera removed should open the same way.
+    test('carries removal through a saved session', () => {
+      const registry = new CameraRegistry();
+      registry.restore([
+        { id: 'cam-1', name: 'mike', everJoined: true, removed: true },
+        { id: 'cam-2', name: 'jana', everJoined: true, removed: false },
+      ]);
+
+      expect(registry.list(1000).map((camera) => camera.removed)).toEqual([true, false]);
+    });
   });
 
   test('a camera that has gone quiet is distinguishable from one that never joined', () => {
