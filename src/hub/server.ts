@@ -702,8 +702,14 @@ async function handle(
     const camera = cameras.list(sessionNow()).find((candidate) => candidate.id === id);
     const token = cameras.tokenFor(id);
     if (!camera || token === null) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end(camera ? 'that camera came from a saved file and cannot be rejoined' : 'no such camera');
+      // Three different absences, and they are not the same news: one is a typo,
+      // one is a decision somebody made, and one is a fact about the file.
+      const why = !camera
+        ? 'no such camera'
+        : camera.removed
+          ? 'that camera was removed from the session — add it again to bring it back'
+          : 'that camera came from a saved file and cannot be rejoined';
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end(why);
       return;
     }
 

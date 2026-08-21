@@ -8,6 +8,13 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.27
+
+- **B** — Asking for the join code of a camera that was removed says so, instead
+  of saying it came from a saved file. Two different absences had been sharing
+  one message, and removing a camera — new in 0.0.26 — made the wrong one the
+  likelier to be read.
+
 ## 0.0.26
 
 - **D** — A camera can be taken out of the session, from an **✕** on its card
