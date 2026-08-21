@@ -71,6 +71,7 @@
           <vr-camera-card
             [camera]="camera"
             (qrWanted)="showQr(camera.id)"
+            (renameWanted)="askRename(camera)"
             (removeWanted)="askRemove(camera)"
           />
         }
@@ -141,6 +142,32 @@
   <div class="qr" data-testid="qr" [innerHTML]="qr()"></div>
   <div class="joinUrl" data-testid="join-url">{{ invited()?.joinUrl }}</div>
   <p class="actions"><button data-testid="close-qr" (click)="closeDialog()">Done</button></p>
+</dialog>
+
+<dialog #renameDialog data-testid="rename-dialog">
+  <h3>Rename {{ renaming()?.name }}</h3>
+  <p>
+    Name it after whoever is holding it now. Its footage and its join code are
+    untouched; bookmarks it already answered will show the new name.
+  </p>
+  <form method="dialog" (submit)="confirmRename()">
+    <!--
+      The old name is filled in by askRename, not bound here. A binding would
+      write it again on the first change detection after the dialog opened —
+      which lands after the field already has focus — and take the first thing
+      typed with it.
+    -->
+    <input
+      #renameField
+      data-testid="rename-field"
+      placeholder="Who is holding it?"
+      autocomplete="off"
+    />
+    <p class="actions">
+      <button type="button" data-testid="cancel-rename" (click)="cancelRename()">Cancel</button>
+      <button class="primary" data-testid="confirm-rename">Rename</button>
+    </p>
+  </form>
 </dialog>
 
 <dialog #removeDialog data-testid="remove-dialog">

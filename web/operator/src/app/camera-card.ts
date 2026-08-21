@@ -28,6 +28,12 @@ import { Hub, isWarmingUp, type Camera } from './hub';
             (click)="qrWanted.emit(); $event.stopPropagation()"
           >QR</button>
           <button
+            class="qr"
+            data-testid="rename-camera"
+            title="Call this camera something else"
+            (click)="renameWanted.emit(); $event.stopPropagation()"
+          >✎</button>
+          <button
             class="qr remove"
             data-testid="remove-camera"
             title="Take this camera out of the session"
@@ -75,6 +81,8 @@ export class CameraCard {
   readonly camera = input.required<Camera>();
   /** Show this camera's join code again. The screen owns the dialog. */
   readonly qrWanted = output<void>();
+  /** Call this camera something else. The screen asks what. */
+  readonly renameWanted = output<void>();
   /** Take this camera out of the session. The screen asks first. */
   readonly removeWanted = output<void>();
 

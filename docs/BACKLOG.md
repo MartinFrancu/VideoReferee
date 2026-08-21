@@ -55,10 +55,6 @@ and the commit says why.
   Escape to leave the bookmark. Arrows already step.
 - **Hide an angle that cannot reach the instant** rather than veiling it. Check
   first whether the veil appears at all while stepping — a report suggests not.
-- **Rename a camera.** The name is set when the camera is added and never again,
-  so a phone handed to somebody else keeps the wrong person's name on every
-  bookmark it answers. Adding and removing (0.0.25, 0.0.26) covers the rest of
-  managing them.
 - **Identify which camera is which.** Flash something on the phone when its card
   is clicked — better in a hall than a thumbnail, since you are looking at the
   phone, not the screen.

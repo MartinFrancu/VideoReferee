@@ -95,6 +95,63 @@ describe('enrolling cameras', () => {
     expect(registry.tokenFor('cam-1')).toBeNull();
   });
 
+  /**
+   * A phone changes hands mid-tournament, or the name was typed in a hurry. The
+   * name is what the operator reads on every tile, so it has to be correctable
+   * without taking the camera out and putting it back.
+   */
+  describe('renaming a camera', () => {
+    const invited = () => {
+      const registry = new CameraRegistry();
+      const camera = registry.invite('mike', 1000);
+      registry.join(camera.token, 1100);
+      return { registry, ...camera };
+    };
+
+    test('takes the new name', () => {
+      const { registry, id } = invited();
+
+      registry.rename(id, 'jana');
+
+      expect(registry.list(1200)[0]?.name).toBe('jana');
+    });
+
+    test('changes nothing else — it is still the same camera, still joined', () => {
+      const { registry, id, token } = invited();
+
+      registry.rename(id, 'jana');
+
+      expect(registry.list(1200)[0]).toMatchObject({ id, live: true, everJoined: true, removed: false });
+      expect(registry.tokenFor(id)).toBe(token);
+    });
+
+    test('trims what was typed', () => {
+      const { registry, id } = invited();
+
+      registry.rename(id, '  jana  ');
+
+      expect(registry.list(1200)[0]?.name).toBe('jana');
+    });
+
+    // A nameless camera is exactly what naming one was meant to prevent.
+    test('refuses a name that is empty or nothing but space', () => {
+      const { registry, id } = invited();
+
+      registry.rename(id, '   ');
+      registry.rename(id, '');
+
+      expect(registry.list(1200)[0]?.name).toBe('mike');
+    });
+
+    test('ignores a camera it has never heard of', () => {
+      const { registry, id } = invited();
+
+      registry.rename('not-a-camera', 'jana');
+
+      expect(registry.list(1200)[0]).toMatchObject({ id, name: 'mike' });
+    });
+  });
+
   describe('removing a camera from the session', () => {
     const joined = () => {
       const registry = new CameraRegistry({ staleAfterMs: 3000 });

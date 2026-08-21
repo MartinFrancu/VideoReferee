@@ -722,6 +722,35 @@ async function handle(
   }
 
   /**
+   * Call a camera something else.
+   *
+   * Only the label. The tiles of past bookmarks look their camera up by id, so
+   * they show the new name at once; a bookmark's `triggeredBy` was recorded as
+   * the name at the time and keeps saying that, which is a record of who marked
+   * it rather than of who is holding the phone now.
+   */
+  if (req.method === 'POST' && url.pathname === '/api/cameras/rename') {
+    const body = (await readJson(req)) as { id?: string; name?: string };
+    const id = body.id ?? '';
+    const name = (body.name ?? '').trim();
+    const camera = cameras.list(sessionNow()).find((candidate) => candidate.id === id);
+    if (!camera) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' }).end('no such camera');
+      return;
+    }
+    if (name === '') {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('a camera needs a name');
+      return;
+    }
+
+    cameras.rename(id, name);
+    tellOperators();
+    console.log(`renamed ${camera.name} to ${name} (${id.slice(0, 8)})`);
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true, name }));
+    return;
+  }
+
+  /**
    * Take a camera out of the session.
    *
    * Its socket closes and its token dies, so it cannot come back with the code

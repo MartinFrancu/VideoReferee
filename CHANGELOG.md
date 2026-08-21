@@ -8,6 +8,17 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.28
+
+- **D** — A camera can be called something else, from a **✎** on its card. The
+  name was set when the camera was added and never again, so a phone handed to
+  somebody else kept the wrong person's name on every bookmark it answered. Only
+  the label changes: same phone, same join code, same footage, and it keeps
+  filming through the rename. Every angle of every past bookmark shows the new
+  name at once — the tiles look their camera up by id — while a bookmark's *from*
+  keeps the name recorded when it was marked, which is who marked it, not who is
+  holding the phone now. An empty name is refused rather than accepted.
+
 ## 0.0.27
 
 - **B** — Asking for the join code of a camera that was removed says so, instead

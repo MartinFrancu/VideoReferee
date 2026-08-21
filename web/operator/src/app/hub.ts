@@ -192,6 +192,11 @@ export class Hub {
     );
   }
 
+  /** Call a camera something else. Only the label; the phone is untouched. */
+  async renameCamera(id: string, name: string): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/cameras/rename', { id, name }));
+  }
+
   /** Take a camera out of the session: asked for nothing, unable to return. */
   async removeCamera(id: string): Promise<void> {
     await firstValueFrom(this.#http.post('/api/cameras/remove', { id }));

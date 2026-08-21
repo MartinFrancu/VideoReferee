@@ -198,6 +198,43 @@ export class App {
    */
   protected readonly removing = signal<Camera | null>(null);
 
+  /** Which camera the rename dialog is about, and the field it types into. */
+  protected readonly renaming = signal<Camera | null>(null);
+  private readonly renameDialog = viewChild<ElementRef<HTMLDialogElement>>('renameDialog');
+  private readonly renameField = viewChild<ElementRef<HTMLInputElement>>('renameField');
+
+  protected askRename(camera: Camera): void {
+    this.renaming.set(camera);
+    this.renameDialog()?.nativeElement.showModal();
+    // Selected, not just focused: renaming is usually replacing, and the old
+    // name is the thing most in the way of typing the new one.
+    const field = this.renameField()?.nativeElement;
+    if (field) {
+      field.value = camera.name;
+      field.select();
+    }
+  }
+
+  protected cancelRename(): void {
+    this.renameDialog()?.nativeElement.close();
+    this.renaming.set(null);
+  }
+
+  protected async confirmRename(): Promise<void> {
+    const camera = this.renaming();
+    const name = this.renameField()?.nativeElement.value.trim() ?? '';
+    this.renameDialog()?.nativeElement.close();
+    this.renaming.set(null);
+    if (!camera || name === '' || name === camera.name) return;
+
+    try {
+      await this.hub.renameCamera(camera.id, name);
+      this.notice.set({ text: `${camera.name} is now ${name}`, bad: false });
+    } catch {
+      this.notice.set({ text: `Could not rename ${camera.name}`, bad: true });
+    }
+  }
+
   protected askRemove(camera: Camera): void {
     this.removing.set(camera);
     this.removeDialog()?.nativeElement.showModal();

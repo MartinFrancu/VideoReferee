@@ -32,7 +32,8 @@ export interface Camera {
 
 interface Enrolment {
   readonly id: string;
-  readonly name: string;
+  /** Whoever is holding it now — a phone can change hands mid-tournament. */
+  name: string;
   /** Emptied when the camera is removed, so its old code lets nobody in. */
   token: string;
   lastSeenAt: number | null;
@@ -114,6 +115,21 @@ export class CameraRegistry {
         removed: camera.removed,
       });
     }
+  }
+
+  /**
+   * Call a camera something else.
+   *
+   * Only the label: the same phone, the same token, the same footage. An empty
+   * name is refused rather than accepted, because a nameless camera is the thing
+   * naming them after their holder exists to prevent — and the operator would
+   * discover it on a tile mid-bout.
+   */
+  rename(id: string, name: string): void {
+    const camera = this.#cameras.get(id);
+    const wanted = name.trim();
+    if (!camera || wanted === '') return;
+    camera.name = wanted;
   }
 
   /**
