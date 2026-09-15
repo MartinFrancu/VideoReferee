@@ -840,6 +840,27 @@ async function handle(
     return;
   }
 
+  /**
+   * The referee lining one angle up by hand.
+   *
+   * Kept on the hub rather than in the browser, although only the browser looks
+   * at it: it belongs to the bookmark, so it has to travel in the saved session
+   * and be there when that session is opened on another laptop. The ledger
+   * decides what is acceptable; this only carries the numbers.
+   */
+  if (req.method === 'POST' && url.pathname === '/api/bookmarks/trim') {
+    const body = (await readJson(req)) as { id?: string; cameraId?: string; trimMs?: number };
+    if (!body.id || !body.cameraId || typeof body.trimMs !== 'number') {
+      res.writeHead(400, { 'Content-Type': 'text/plain' }).end('need a bookmark, a camera and a trim');
+      return;
+    }
+
+    bookmarks.trim(body.id, body.cameraId, body.trimMs);
+    tellOperators();
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/bookmarks/resolve') {
     const body = (await readJson(req)) as { id?: string; resolution?: Resolution; all?: boolean };
     const resolution = body.resolution;

@@ -47,6 +47,30 @@ a real captured bookmark. The user reported the arithmetic looked dubious and di
 not have time to dig; this deserves a proper walk with a capture as evidence
 rather than a defence of it.
 
+## Why a manual trim is per bookmark, not per camera
+
+The trim (0.0.29) is stored on the `Angle`, so it belongs to one camera on one
+bookmark, and the next bookmark starts from the arithmetic again.
+
+Per camera was the tempting alternative, and it is the one that sounds right:
+the thing being corrected is that camera's media-origin estimate, so dial mike
+in once and every bookmark improves. The argument against is the min-of-N bias
+above — the estimate is the smallest delay ever observed, so it only ever gets
+better as a session runs. A trim measured on the third bookmark is calibrated
+against an estimate that no longer exists by the twentieth, and would then be
+over-correcting an angle that had fixed itself. Silently, because a standing
+trim is invisible once it has been set and forgotten.
+
+Per bookmark costs the referee the nudging again on each one. That is a real
+cost and it is the reason to fix the estimates properly rather than live here
+forever — this is a bypass, not a solution, and the P0 items above are the
+solution. But a correction that is only ever right for the footage it was made
+on is one the referee cannot be wrong about.
+
+If the nudging turns out to be the chore it sounds like, the answer is to seed
+each new bookmark's trim from the last one for that camera and show it as a
+suggestion, not to make one number stand for the whole session.
+
 ## A better sync method
 
 A hub heartbeat every second or so, feeding a rolling estimate, instead of

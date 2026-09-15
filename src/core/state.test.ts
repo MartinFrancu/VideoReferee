@@ -131,6 +131,28 @@ describe('parseSavedState', () => {
   });
 
   /**
+   * A trim is the referee's own correction, not something the arithmetic can
+   * work out again — so a session that opens without it opens misaligned, in
+   * exactly the way somebody had already taken the trouble to fix.
+   */
+  it('carries a trim the referee made by hand, including a negative one', () => {
+    const state = clone();
+    state.bookmarks[0]!.angles[0] = {
+      cameraId: 'cam-1',
+      status: 'received',
+      url: '/clips/bm-1_cam-1.webm',
+      startSessionMs: 1,
+      bookmarkOffsetMs: 2,
+      trimMs: -132,
+    };
+    expect(parseSavedState(state).bookmarks[0]?.angles[0]?.trimMs).toBe(-132);
+  });
+
+  it('leaves an untrimmed angle untrimmed rather than trimming it by nothing', () => {
+    expect(parseSavedState(clone()).bookmarks[0]?.angles[0]).not.toHaveProperty('trimMs');
+  });
+
+  /**
    * The reason an angle never arrived is the whole point of sending the file to
    * somebody, so it has to survive the trip.
    */

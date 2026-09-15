@@ -11,9 +11,10 @@ import {
   viewChildren,
 } from '@angular/core';
 
-import { Hub, RESOLUTIONS, type Bookmark, type Camera, type Resolution } from './hub';
+import { Hub, RESOLUTIONS, type Angle, type Bookmark, type Camera, type Resolution } from './hub';
 import { ReviewTile } from './review-tile';
 import { stepForKey } from './review-keys';
+import { nudgedTrim } from './trim';
 
 /** Beyond this the angles are visibly apart, so correct rather than nudge. */
 const HARD_RESYNC_MS = 200;
@@ -42,8 +43,11 @@ const NUDGE_MS = 15;
           [name]="nameFor(angle.cameraId)"
           [lead]="angle.cameraId === leadId()"
           [following]="dragging() && angle.cameraId !== leadId()"
+          [trimMs]="trimFor(angle)"
           (chosen)="leadId.set(angle.cameraId)"
           (spanKnown)="noteSpan(angle.cameraId, $event)"
+          (trimBy)="nudgeTrim(angle, $event)"
+          (trimCleared)="setTrim(angle, 0)"
         />
       }
     </div>
@@ -304,6 +308,45 @@ export class ReviewStage {
   /** Escape and the backdrop close it too, and neither goes through Cancel. */
   protected onDialogClosed(): void {
     this.choice.set(null);
+  }
+
+  /**
+   * How far this angle has been moved by hand.
+   *
+   * Held here, keyed by bookmark and camera, and only *after* someone has
+   * nudged it — until then the hub's copy is the answer. That way a nudge shows
+   * on the footage immediately instead of a second later when the next poll
+   * lands, and the poll cannot undo a nudge made between two of them.
+   */
+  readonly #trims = signal(new Map<string, number>());
+
+  #trimKey(angle: Angle): string {
+    return `${this.bookmark().id} ${angle.cameraId}`;
+  }
+
+  protected trimFor(angle: Angle): number {
+    return this.#trims().get(this.#trimKey(angle)) ?? angle.trimMs ?? 0;
+  }
+
+  protected nudgeTrim(angle: Angle, deltaMs: number): void {
+    this.setTrim(angle, nudgedTrim(this.trimFor(angle), deltaMs));
+  }
+
+  /**
+   * Move this angle, show it moved, and tell the hub.
+   *
+   * The seek is the point: lining up by eye means watching this tile jump while
+   * the others hold still, so the frame has to change on the press rather than
+   * when the hub answers.
+   */
+  protected setTrim(angle: Angle, trimMs: number): void {
+    this.pause();
+    this.#trims.update((trims) => new Map(trims).set(this.#trimKey(angle), trimMs));
+    // Handed the new trim rather than left to read it: the tile's input still
+    // holds the old one until change detection catches up, and by then the
+    // frame would already be sitting at the position it was at before.
+    this.#tileFor(angle.cameraId)?.seekTo(this.relativeMs(), trimMs);
+    void this.#hub.trimAngle(this.bookmark().id, angle.cameraId, trimMs);
   }
 
   protected nameFor(cameraId: string): string {

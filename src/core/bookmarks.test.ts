@@ -159,6 +159,133 @@ describe('keeping track of bookmarks', () => {
   });
 });
 
+/**
+ * The referee lining two angles up by eye, because the arithmetic that should
+ * have done it did not. Per bookmark and per camera: the estimates behind a cut
+ * are settled when that cut is made, so a correction that is right for one
+ * bookmark is only a guess at the next.
+ */
+describe('trimming an angle by hand', () => {
+  const arrived = () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['mike', 'jana'] });
+    for (const cameraId of ['mike', 'jana']) {
+      ledger.recordClip(bookmark.id, {
+        cameraId,
+        url: `/clips/${cameraId}.webm`,
+        startSessionMs: 3500,
+        bookmarkOffsetMs: 1500,
+      });
+    }
+    return { ledger, bookmark };
+  };
+
+  const angleOf = (ledger: BookmarkLedger, cameraId: string) =>
+    ledger.list()[0]?.angles.find((angle) => angle.cameraId === cameraId);
+
+  test('takes the trim, in milliseconds', () => {
+    const { ledger, bookmark } = arrived();
+
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    expect(angleOf(ledger, 'mike')?.trimMs).toBe(132);
+  });
+
+  test('trims only that camera, and leaves everything else about it alone', () => {
+    const { ledger, bookmark } = arrived();
+
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    expect(angleOf(ledger, 'jana')?.trimMs).toBeUndefined();
+    expect(angleOf(ledger, 'mike')).toMatchObject({
+      status: 'received',
+      url: '/clips/mike.webm',
+      bookmarkOffsetMs: 1500,
+    });
+  });
+
+  test('trims only that bookmark — the next one starts from the arithmetic again', () => {
+    const { ledger, bookmark } = arrived();
+    const later = ledger.create({ sessionMs: 9000, triggeredBy: 'mike', cameraIds: ['mike'] });
+    ledger.recordClip(later.id, {
+      cameraId: 'mike',
+      url: '/clips/later.webm',
+      startSessionMs: 7500,
+      bookmarkOffsetMs: 1500,
+    });
+
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    const byId = new Map(ledger.list().map((one) => [one.id, one.angles[0]]));
+    expect(byId.get(bookmark.id)?.trimMs).toBe(132);
+    expect(byId.get(later.id)?.trimMs).toBeUndefined();
+  });
+
+  test('takes a negative trim, for an angle that runs ahead of the others', () => {
+    const { ledger, bookmark } = arrived();
+
+    ledger.trim(bookmark.id, 'mike', -240);
+
+    expect(angleOf(ledger, 'mike')?.trimMs).toBe(-240);
+  });
+
+  test('rounds to whole milliseconds — a slider hands over whatever it likes', () => {
+    const { ledger, bookmark } = arrived();
+
+    ledger.trim(bookmark.id, 'mike', 132.6);
+
+    expect(angleOf(ledger, 'mike')?.trimMs).toBe(133);
+  });
+
+  /**
+   * An untrimmed angle has no trim, rather than a trim of nothing. The saved
+   * file then says which angles were corrected by hand, and a tile can ask one
+   * question instead of two.
+   */
+  test('a trim of zero clears it rather than recording one', () => {
+    const { ledger, bookmark } = arrived();
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    ledger.trim(bookmark.id, 'mike', 0);
+
+    expect(angleOf(ledger, 'mike')).not.toHaveProperty('trimMs');
+  });
+
+  /**
+   * There is nothing on screen to line up against. A trim set before the
+   * footage arrived would be a guess at a clip nobody has seen, and the cut it
+   * would be measured against does not exist yet.
+   */
+  test('refuses an angle that has not arrived', () => {
+    const ledger = new BookmarkLedger();
+    const bookmark = ledger.create({ sessionMs: 5000, triggeredBy: 'mike', cameraIds: ['mike'] });
+
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    expect(angleOf(ledger, 'mike')).toEqual({ cameraId: 'mike', status: 'pending' });
+  });
+
+  test('ignores a bookmark or a camera it has never heard of', () => {
+    const { ledger, bookmark } = arrived();
+
+    ledger.trim('not-a-bookmark', 'mike', 132);
+    ledger.trim(bookmark.id, 'not-a-camera', 132);
+
+    expect(angleOf(ledger, 'mike')?.trimMs).toBeUndefined();
+    expect(ledger.list()[0]?.angles).toHaveLength(2);
+  });
+
+  test('refuses anything that is not a real number of milliseconds', () => {
+    const { ledger, bookmark } = arrived();
+    ledger.trim(bookmark.id, 'mike', 132);
+
+    ledger.trim(bookmark.id, 'mike', Number.NaN);
+    ledger.trim(bookmark.id, 'mike', Number.POSITIVE_INFINITY);
+
+    expect(angleOf(ledger, 'mike')?.trimMs).toBe(132);
+  });
+});
+
 describe('resolving a bookmark', () => {
   const ledger = () => {
     const it = new BookmarkLedger();

@@ -72,6 +72,8 @@ export interface Angle {
   note?: string;
   /** How far out this angle could be, once it has arrived. */
   uncertaintyMs?: number;
+  /** What the referee nudged it by, by eye. Positive shows a later frame. */
+  trimMs?: number;
   url?: string;
   startSessionMs?: number;
   bookmarkOffsetMs?: number;
@@ -205,6 +207,17 @@ export class Hub {
   /** Mark this instant from the desk. Every filming camera answers, as ever. */
   async bookmark(): Promise<void> {
     await firstValueFrom(this.#http.post('/api/bookmarks', {}));
+  }
+
+  /**
+   * Line one angle of one bookmark up by hand.
+   *
+   * Sent to the hub on every nudge rather than on some Done, because there is
+   * no Done: the referee stops nudging when it looks right and goes back to
+   * watching. Whatever they left it at is the answer.
+   */
+  async trimAngle(id: string, cameraId: string, trimMs: number): Promise<void> {
+    await firstValueFrom(this.#http.post('/api/bookmarks/trim', { id, cameraId, trimMs }));
   }
 
   async resolve(id: string, resolution: Resolution): Promise<void> {

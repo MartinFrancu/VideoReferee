@@ -41,6 +41,21 @@ export interface Angle {
    * already cut from the worse ones.
    */
   readonly uncertaintyMs?: number;
+  /**
+   * What the referee nudged this angle by, in milliseconds, to line it up by
+   * eye. Positive moves this camera's footage forward — what you want when it
+   * is showing a moment the others have already passed.
+   *
+   * A correction applied on top of the arithmetic, not a replacement for it:
+   * the estimates are still doing most of the work, and this closes whatever
+   * they left. Per bookmark rather than per camera because the estimates behind
+   * a cut are settled when that cut is made, so what is right here is only a
+   * guess at the next bookmark.
+   *
+   * Absent on an angle nobody has touched, so a saved file says which ones were
+   * corrected by hand.
+   */
+  readonly trimMs?: number;
   /** Where the clip landed, once it has. */
   readonly url?: string;
   /** Session time of the clip's first frame. */
@@ -112,6 +127,29 @@ export class BookmarkLedger {
     const angle = this.#bookmarks.get(bookmarkId)?.angles.get(cameraId);
     if (!angle || angle.status === 'received') return;
     this.#bookmarks.get(bookmarkId)!.angles.set(cameraId, { ...angle, note });
+  }
+
+  /**
+   * The referee lining this angle up by hand, having seen that it is out.
+   *
+   * Only an angle that has arrived can be trimmed: there is nothing on screen
+   * to line up against otherwise, and the cut it would be measured from does
+   * not exist yet. Zero clears the trim rather than recording one, so an
+   * untrimmed angle has no trim rather than a trim of nothing.
+   *
+   * A replacement clip for the same angle is cut afresh and arrives untrimmed —
+   * a correction is calibrated against the cut it was made on, and a new cut is
+   * not that one.
+   */
+  trim(bookmarkId: string, cameraId: string, trimMs: number): void {
+    const angle = this.#bookmarks.get(bookmarkId)?.angles.get(cameraId);
+    if (!angle || angle.status !== 'received' || !Number.isFinite(trimMs)) return;
+
+    const wanted = Math.round(trimMs);
+    const { trimMs: _dropped, ...untrimmed } = angle;
+    this.#bookmarks
+      .get(bookmarkId)!
+      .angles.set(cameraId, wanted === 0 ? untrimmed : { ...untrimmed, trimMs: wanted });
   }
 
   /** What the referee decided about this bookmark. Unknown ids are ignored. */

@@ -125,6 +125,9 @@ export function parseSavedState(input: unknown): SavedState {
         ...(typeof angle['uncertaintyMs'] === 'number'
           ? { uncertaintyMs: angle['uncertaintyMs'] }
           : {}),
+        // The referee's own correction. Nothing can work it out again, so a
+        // file that loses it opens misaligned in the way somebody had fixed.
+        ...(typeof angle['trimMs'] === 'number' ? { trimMs: angle['trimMs'] } : {}),
         ...(typeof angle['url'] === 'string' ? { url: angle['url'] } : {}),
         ...(typeof angle['startSessionMs'] === 'number'
           ? { startSessionMs: angle['startSessionMs'] }

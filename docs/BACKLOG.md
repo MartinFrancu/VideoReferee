@@ -17,6 +17,10 @@ and the commit says why.
   phones may flag everything — one event's numbers settles it. **Needs use.**
 - **Test the min-of-N hypothesis.** Why the first bookmark of a session is the
   suspicious one, and now checkable against captures → [notes](notes.md#why-the-first-bookmark-is-the-suspicious-one).
+- **Read the trims as measurements.** Every manual trim (0.0.29) is a referee
+  saying how wrong the arithmetic was, in milliseconds, per camera. A session's
+  worth is free evidence for everything else in this section — and if they all
+  point the same way per camera, that is the bias, named.
 - **Capture what the review screen did.** The hub's side is recorded; the
   browser's is not — which tile was lead, what each seek asked for, where the
   video actually landed. The suspicion is the seeking as much as the arithmetic.
@@ -47,6 +51,13 @@ and the commit says why.
 
 - **Resolving does not move you on.** Deciding should advance to the next
   undecided bookmark, never onto one still gathering, stopping at the end.
+- **Holding a nudge button should walk it,** like the frame buttons do. Trimming
+  by half a second is fifteen clicks; the hold machinery already exists on the
+  stage. **Needs use** — it may not be worth it once the coarse step is there.
+- **Carry a trim over to the next bookmark as a suggestion.** Not as a standing
+  per-camera value, which goes stale invisibly → [notes](notes.md#why-a-manual-trim-is-per-bookmark-not-per-camera). Only if the nudging proves a chore.
+- **`docs/review-screen.md` says the screen is not built yet.** It has been for
+  many versions. Worth a read-through rather than a line edit.
 - **The scrubber does not show where the bookmark is.** A tick at zero, and a
   band per clip showing how far each reaches.
 - **The sweep cannot be undone.** One click, bulk, irreversible. "Marked 8 done ·

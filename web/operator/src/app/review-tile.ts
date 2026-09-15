@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 
 import { Hub, type Angle } from './hub';
+import { mediaMsFor, stageMsFor, trimLabel } from './trim';
 import { loosenessLabel } from './uncertainty';
 
 /** One angle of one bookmark. Owns its video element; the stage drives it. */
@@ -42,6 +43,19 @@ import { loosenessLabel } from './uncertainty';
             [title]="'This angle could be out by ' + bound + '. The clock and recording-start estimates behind it are not settled.'"
           >{{ bound }}</span>
         }
+        <!--
+          A trim always shows, unlike the figure beside it. That one is a
+          measurement and stays quiet until it matters; this one is a correction
+          somebody made by hand, and looking at a moved angle without knowing it
+          was moved is the thing to prevent.
+        -->
+        @if (trimShown(); as shown) {
+          <span
+            class="trimmed"
+            data-testid="trim-badge"
+            [title]="'Lined up by hand, by ' + shown + ' against the other angles.'"
+          >⇄ {{ shown }}</span>
+        }
       </figcaption>
       <div class="stage">
         <video #video playsinline preload="auto" [muted]="!lead()" (loadedmetadata)="onMetadata()" (durationchange)="measure()"></video>
@@ -54,6 +68,38 @@ import { loosenessLabel } from './uncertainty';
           <div class="veil" data-testid="veil">{{ reason }}</div>
         }
       </div>
+
+      <!--
+        Under the footage it is about, because lining an angle up is done by
+        watching this tile against the others while nudging. Only offered once
+        the clip is here: there is nothing to line up against otherwise.
+      -->
+      @if (angle().status === 'received') {
+        <div class="sync" (click)="$event.stopPropagation()">
+          <button
+            class="toggle"
+            data-testid="sync"
+            [class.on]="syncing()"
+            [title]="'Line this angle up against the others by hand'"
+            (click)="syncing.set(!syncing())"
+          >⇄ Sync</button>
+
+          @if (syncing()) {
+            <button data-testid="trim-back-lots" title="a tenth of a second earlier" (click)="trimBy.emit(-100)">◀◀</button>
+            <button data-testid="trim-back" title="one frame earlier" (click)="trimBy.emit(-frameMs())">◀</button>
+            <span class="amount" data-testid="trim-amount">{{ trimShown() ?? '0.00s' }}</span>
+            <button data-testid="trim-on" title="one frame later" (click)="trimBy.emit(frameMs())">▶</button>
+            <button data-testid="trim-on-lots" title="a tenth of a second later" (click)="trimBy.emit(100)">▶▶</button>
+            <button
+              class="reset"
+              data-testid="trim-reset"
+              [disabled]="!trimMs()"
+              title="Back to where the hub put it"
+              (click)="trimCleared.emit()"
+            >Reset</button>
+          }
+        </div>
+      }
     </figure>
   `,
   styles: `
@@ -104,8 +150,59 @@ import { loosenessLabel } from './uncertainty';
       padding: 1px 5px;
       cursor: help;
     }
+    /*
+      A correction, not a measurement: it reads in the accent rather than the
+      amber warning beside it, because nothing is wrong — somebody decided this.
+    */
+    .trimmed {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 1px 5px;
+      cursor: help;
+    }
     /* Whichever is showing takes the right-hand end; never both pushing. */
-    .note + .loose { margin-left: 8px; }
+    .note + .loose,
+    .note + .trimmed,
+    .loose + .trimmed { margin-left: 8px; }
+    .trimmed:first-of-type { margin-left: auto; }
+
+    /* Under the footage, out of the way until it is wanted. */
+    .sync {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: none;
+      padding: 5px 8px;
+      background: var(--panel);
+      border-top: 1px solid var(--rule);
+    }
+    .sync button {
+      font: inherit;
+      font-size: 11.5px;
+      background: var(--ground);
+      color: var(--ink);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 2px 7px;
+      cursor: pointer;
+      min-width: 0;
+    }
+    .sync button:hover:not(:disabled) { border-color: var(--accent); }
+    .sync button:disabled { opacity: 0.4; cursor: default; }
+    .sync .toggle.on { border-color: var(--accent); color: var(--accent); }
+    .sync .reset { margin-left: auto; }
+    .amount {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+      min-width: 56px;
+      text-align: center;
+      color: var(--faded);
+    }
     .stage { position: relative; flex: 1; min-height: 0; }
     /* Letterboxed rather than cropped: a referee needs the whole frame. */
     video { display: block; width: 100%; height: 100%; background: #000; object-fit: contain; }
@@ -128,10 +225,21 @@ export class ReviewTile {
   readonly lead = input(false);
   /** Someone is dragging the slider on another tile, so this one is stale. */
   readonly following = input(false);
+  /**
+   * How far the referee has moved this angle by hand. Owned by the stage, which
+   * is the side that has to write it back to the hub.
+   */
+  readonly trimMs = input(0);
 
   readonly chosen = output<void>();
   /** How far either side of the bookmark this clip can actually go. */
   readonly spanKnown = output<{ backMs: number; forwardMs: number }>();
+  /** A nudge, in milliseconds. The stage adds it up and holds the total. */
+  readonly trimBy = output<number>();
+  readonly trimCleared = output<void>();
+
+  /** Whether this tile is showing its nudge controls. One tile at a time is fine. */
+  protected readonly syncing = signal(false);
 
   protected readonly beyondFootage = signal(false);
 
@@ -143,6 +251,12 @@ export class ReviewTile {
   protected readonly looseness = computed(() =>
     loosenessLabel(this.angle().uncertaintyMs, this.#hub.config().review.trustedWithinMs)
   );
+
+  /** The trim as the referee reads it, or null when there is nothing to say. */
+  protected readonly trimShown = computed(() => trimLabel(this.trimMs()));
+
+  /** A nudge of one frame, the same frame the step buttons move by. */
+  protected readonly frameMs = computed(() => this.#hub.config().review.frameMs);
 
   /**
    * Why this tile is not worth looking at right now, or null if it is.
@@ -227,6 +341,11 @@ export class ReviewTile {
     if (!Number.isFinite(seconds) || seconds <= 0) return;
 
     this.#durationMs = seconds * 1000;
+    // Where the clip reaches, before any trim. A trim shifts that by its own
+    // size, but the slider spans what *some* angle can reach rather than what
+    // each one can, and a tile asked for a position it cannot reach already
+    // says so and veils itself. Better than a scrubber whose ends move while
+    // the referee is lining an angle up.
     const offset = this.angle().bookmarkOffsetMs ?? 0;
     this.spanKnown.emit({ backMs: offset, forwardMs: Math.max(0, this.#durationMs - offset) });
     this.seekTo(0);
@@ -236,9 +355,16 @@ export class ReviewTile {
     return this.videoRef().nativeElement;
   }
 
-  /** Position this angle at `relativeMs` from the bookmarked instant. */
-  seekTo(relativeMs: number): void {
-    const localMs = (this.angle().bookmarkOffsetMs ?? 0) + relativeMs;
+  /**
+   * Position this angle at `relativeMs` from the bookmarked instant.
+   *
+   * The trim can be given rather than read, because the stage changes it and
+   * seeks in the same breath — and at that moment the input carrying it still
+   * holds the value from before the nudge. Seeking with that would leave the
+   * frame exactly where it was, which is the one thing a nudge must not do.
+   */
+  seekTo(relativeMs: number, trimMs: number = this.trimMs()): void {
+    const localMs = mediaMsFor(this.angle(), trimMs, relativeMs);
     const upper = Number.isFinite(this.#durationMs) ? this.#durationMs : localMs;
     const clamped = Math.max(0, Math.min(localMs, upper));
     this.beyondFootage.set(Math.abs(clamped - localMs) > 1);
@@ -247,6 +373,6 @@ export class ReviewTile {
 
   /** Where this angle currently sits, relative to the bookmarked instant. */
   relativeMs(): number {
-    return this.element.currentTime * 1000 - (this.angle().bookmarkOffsetMs ?? 0);
+    return stageMsFor(this.angle(), this.trimMs(), this.element.currentTime * 1000);
   }
 }

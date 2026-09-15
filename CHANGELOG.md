@@ -8,6 +8,20 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.29
+
+- **D** — An angle can be lined up by hand. **⇄ Sync** under a tile opens a
+  nudge bar — a frame or a tenth of a second either way, up to two seconds, with
+  **Reset** back to where the hub put it — and the footage moves on the press,
+  so it is lined up by watching rather than by arithmetic. `Angle` gains
+  `trimMs`, which travels in the saved session. It is a bypass for alignment the
+  estimates got wrong, not a correction to them: nothing is fed back, and a trim
+  belongs to one camera on one bookmark, because the estimates behind a cut are
+  settled when that cut is made and what is right here is only a guess at the
+  next one. A trimmed angle always wears a **⇄ +0.27s** badge — unlike the
+  uncertainty figure beside it, which stays quiet until it matters, this one is
+  somebody's decision about what is on screen and should never be invisible.
+
 ## 0.0.28
 
 - **D** — A camera can be called something else, from a **✎** on its card. The

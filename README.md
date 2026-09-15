@@ -97,6 +97,12 @@ fills the rest of the screen.
   play all angles together — the controls are along the bottom.
 - **Left and right arrows** step a frame at a time without reaching for anything.
   Hold one down to walk through a hit slowly.
+- **⇄ Sync** under an angle lines it up by hand when the alignment is visibly
+  out. Nudge it a frame or a tenth of a second either way, watching it against
+  the others; **Reset** puts it back where the hub had it. A moved angle wears a
+  **⇄ +0.27s** badge so nobody reviews a corrected angle without knowing it was
+  corrected. The correction belongs to that bookmark — the next one starts from
+  the hub's arithmetic again — and it is saved with the session.
 - **An amber ±0.18s on a tile** means that angle's alignment is not settled: it
   could be out by that much against the others. Nothing stops you deciding — it
   is there so that two angles disagreeing about *when* cannot be mistaken for two
@@ -117,6 +123,7 @@ fills the rest of the screen.
 | A camera shows "not responding" | The phone's screen locked, or it left the Wi-Fi | Wake it and reopen the page. |
 | A phone is finished with, or was added by mistake | — | **✕** on its card takes it out of the session. It stops being asked for anything and cannot rejoin with the code it has; its clips and its name stay on the bookmarks it already answered. **QR** on the card shows a camera's join code again, unchanged, if the dialog was closed too early. |
 | A camera's name is wrong — a typo, or the phone changed hands | — | **✎** on its card renames it. It keeps filming, keeps its join code, and every bookmark it has answered shows the new name. |
+| Two angles are visibly out of step with each other | The hub's alignment for one of them is off — the estimates behind it are not settled | **⇄ Sync** under that angle, then nudge it until it matches. It stays put for that bookmark and is saved with the session. |
 | An angle stays dark with a line of text on it | That clip did not arrive, and the text says why — the hub keeps asking for about 20 seconds before giving up | If it says the phone could not send it, check that phone is awake and on the Wi-Fi. The wording travels in the saved session, so it is worth saving one. |
 | The screen looks older than the code you pulled | The operator screen was not rebuilt | Use `npm start`, not `npm run start:hub`. |
 | Anything odd you want looked at — a clip that came out wrong, an angle that never arrived, anything | — | **Session menu → Save debug dump**, before touching anything else. It writes one `.zip` into the **`debug-dumps`** folder in the project directory and tells you the name. Send that file: it holds the bookmarks, the clips, and everything the hub used to cut them. |
