@@ -8,6 +8,14 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.30
+
+- **R** — Record how a manual trim should carry forward: as the default starting
+  value for that camera on every later bookmark nobody has touched by hand,
+  anchored to the bookmark it was set on. Replaces the vaguer "carry it over as
+  a suggestion" line, with the four things it has to get right written down
+  beside it. No behaviour change.
+
 ## 0.0.29
 
 - **D** — An angle can be lined up by hand. **⇄ Sync** under a tile opens a

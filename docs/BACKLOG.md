@@ -54,8 +54,11 @@ and the commit says why.
 - **Holding a nudge button should walk it,** like the frame buttons do. Trimming
   by half a second is fifteen clicks; the hold machinery already exists on the
   stage. **Needs use** — it may not be worth it once the coarse step is there.
-- **Carry a trim over to the next bookmark as a suggestion.** Not as a standing
-  per-camera value, which goes stale invisibly → [notes](notes.md#why-a-manual-trim-is-per-bookmark-not-per-camera). Only if the nudging proves a chore.
+- **A trim should carry forward as a default.** Trimming a camera on one
+  bookmark starts every *later* bookmark nobody has touched by hand at that same
+  figure, so a camera is dialled in once and stays dialled in — while a trim set
+  by hand still beats it, and bookmarks already reviewed are left as they were
+  → [notes](notes.md#why-a-manual-trim-is-per-bookmark-not-per-camera).
 - **`docs/review-screen.md` says the screen is not built yet.** It has been for
   many versions. Worth a read-through rather than a line edit.
 - **The scrubber does not show where the bookmark is.** A tick at zero, and a

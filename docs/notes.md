@@ -67,9 +67,32 @@ forever — this is a bypass, not a solution, and the P0 items above are the
 solution. But a correction that is only ever right for the footage it was made
 on is one the referee cannot be wrong about.
 
-If the nudging turns out to be the chore it sounds like, the answer is to seed
-each new bookmark's trim from the last one for that camera and show it as a
-suggestion, not to make one number stand for the whole session.
+### Carrying a trim forward
+
+Martin's answer to the nudging, and it keeps what per-bookmark storage is for.
+A trim set on one bookmark becomes the **default starting value** for that
+camera on every later bookmark nobody has touched by hand. Dial mike in once and
+he stays dialled in; trim him again later and the new figure takes over from
+there on.
+
+Four things it has to get right, and they are the whole design:
+
+- **Later only.** Bookmarks before the one that was trimmed keep what they had.
+  They have been looked at, and some have been decided on.
+- **Untouched only.** A trim made by hand on a bookmark is the referee's answer
+  for that bookmark and nothing may overwrite it — which means *touched by hand*
+  has to be distinguishable from *carrying the default*, so it is a third state
+  rather than a number that happens to match.
+- **A default, not a copy.** It applies where nothing else says otherwise, so a
+  later correction changes every untouched bookmark after it at once rather than
+  leaving a trail of stale copies to go and find.
+- **Visible either way.** The badge is there so nobody reviews a moved angle
+  without knowing it was moved; an angle moved by a default it inherited is
+  still a moved angle, and arguably the more important one to say so about.
+
+This is still not a standing per-camera value: it is anchored to the bookmark it
+was set on, so the stale-estimate problem above has a bound on it and the record
+of what was corrected when survives.
 
 ## A better sync method
 
