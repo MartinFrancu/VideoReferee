@@ -8,6 +8,18 @@ One entry per chunk of work, marked with what kind it was:
 
 See `.claude/skills/chunks/SKILL.md` for the working agreement this follows.
 
+## 0.0.31
+
+- **B** — The certificate the phones connect through says it is a server
+  certificate. `selfsigned` supplies that declaration by default and drops it,
+  with the rest of its defaults, the moment any extension is given — and one is,
+  to name the addresses. iOS 13 and later refuse such a certificate at the
+  handshake with no way to accept it, which reads as a broken network rather
+  than a certificate problem; Android never minded. Basic constraints and key
+  usage were missing the same way. The validity period is also set for real now:
+  `days` has not been an option since `selfsigned` 5, so it was quietly ignored,
+  and a ten-year certificate would have been refused for that reason alone.
+
 ## 0.0.30
 
 - **R** — Record how a manual trim should carry forward: as the default starting

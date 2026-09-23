@@ -1,42 +1,19 @@
-// Makes the throwaway TLS certificate the phones will connect through.
-//
-// getUserMedia and Wake Lock only work in a secure context, so plain http on a
-// LAN address silently refuses the camera. Pure Node, so it behaves the same on
-// Windows without bash or openssl.
-//
-// The certificate must carry every local address as a Subject Alternative Name:
-// iOS Safari lets you click through the warning for a CommonName-only cert and
-// then kills the connection anyway, which reads as a network fault rather than a
-// certificate problem.
+// Writes the certificate the phones connect through. What goes into it, and
+// why each part is not optional, is in cert.ts.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import selfsigned from 'selfsigned';
-
+import { certificateFor } from './cert.js';
 import { localAddresses } from '../src/hub/network.js';
 
 const CERT_DIR = fileURLToPath(new URL('../certs/', import.meta.url));
 const addresses = localAddresses();
 
-const pems = await selfsigned.generate([{ name: 'commonName', value: 'videoreferee.local' }], {
-  days: 3650,
-  keySize: 2048,
-  algorithm: 'sha256',
-  extensions: [
-    {
-      name: 'subjectAltName',
-      altNames: [
-        { type: 2, value: 'localhost' },
-        { type: 7, ip: '127.0.0.1' },
-        ...addresses.map((ip) => ({ type: 7 as const, ip })),
-      ],
-    },
-  ],
-});
+const { key, cert } = await certificateFor(addresses);
 
 mkdirSync(CERT_DIR, { recursive: true });
-writeFileSync(`${CERT_DIR}key.pem`, pems.private);
-writeFileSync(`${CERT_DIR}cert.pem`, pems.cert);
+writeFileSync(`${CERT_DIR}key.pem`, key);
+writeFileSync(`${CERT_DIR}cert.pem`, cert);
 
 console.log('Wrote certs/key.pem and certs/cert.pem');
 console.log(`Covers: localhost, 127.0.0.1, ${addresses.join(', ') || '(no local address found)'}`);
