@@ -37,6 +37,25 @@ export function windowFor({ atMs, leadMs, tailMs, durationMs }) {
 }
 
 /**
+ * Where a drag across the picture lands.
+ *
+ * Relative to where the footage already was, not to where the thumb went down:
+ * an absolute mapping would teleport the picture the instant it was touched,
+ * which is exactly the moment the referee is trying to look at something.
+ *
+ * The full width of the picture spans the full window, so everything is in
+ * reach in one gesture — on a phone that works out finer than a frame per
+ * pixel, which is as much precision as there is to have.
+ *
+ * @param {object} drag
+ * @param {number} drag.fromMs where the footage was when the thumb went down
+ * @param {number} drag.acrossFraction how far it has moved, as a fraction of the width
+ */
+export function draggedTo({ fromMs, acrossFraction, window }) {
+  return clampWithin(fromMs + acrossFraction * (window.endMs - window.startMs), window);
+}
+
+/**
  * Whether the camera's own frame clock actually ran during this recording.
  *
  * Every mark is timed twice — by the page's clock and by the camera's — because

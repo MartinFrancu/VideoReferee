@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { clampWithin, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
+import { clampWithin, draggedTo, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
 
 const spec = { leadMs: 1500, tailMs: 1000, durationMs: 60_000 };
 
@@ -70,6 +70,35 @@ describe('the window a bookmark is reviewed in', () => {
  * of a bout at the same instant and showed the first one under all three tabs.
  * A reading has to be shown to have run before it can be believed.
  */
+/**
+ * Dragging a thumb across the picture to move through the footage — the whole
+ * frame as the control, rather than a slider six millimetres tall.
+ *
+ * Relative rather than absolute: touching the picture must not teleport the
+ * footage to wherever the thumb landed. The drag moves it from where it was.
+ */
+describe('dragging across the picture', () => {
+  const window = { startMs: 28_500, endMs: 31_000 };
+
+  test('a touch that has not moved yet changes nothing', () => {
+    expect(draggedTo({ fromMs: 30_000, acrossFraction: 0, window })).toBe(30_000);
+  });
+
+  /** The full width of the picture is the full window, so it all stays in reach. */
+  test('half the width forward moves half the window forward', () => {
+    expect(draggedTo({ fromMs: 28_500, acrossFraction: 0.5, window })).toBe(29_750);
+  });
+
+  test('dragging back goes back', () => {
+    expect(draggedTo({ fromMs: 31_000, acrossFraction: -0.5, window })).toBe(29_750);
+  });
+
+  test('stops at the ends rather than running past them', () => {
+    expect(draggedTo({ fromMs: 30_000, acrossFraction: 5, window })).toBe(31_000);
+    expect(draggedTo({ fromMs: 30_000, acrossFraction: -5, window })).toBe(28_500);
+  });
+});
+
 describe('whether the camera clock can be believed', () => {
   test('believes a clock that ran', () => {
     expect(frameClockUsable([{ frameMs: 2550 }, { frameMs: 5100 }, { frameMs: 7650 }])).toBe(true);

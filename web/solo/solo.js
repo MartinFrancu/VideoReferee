@@ -2,24 +2,28 @@
 //
 // The flow it exists to answer: film a bout, mark up to five moments while it
 // runs, stop when the fight is stopped, then flick between those moments and
-// step through each one. Filming and reviewing never overlap, which is the
-// whole reason this is simple: there is never any need to read the recent past
-// while still writing to it. One recorder runs for the bout, stopping it hands
-// back a complete file the browser wrote itself, and a mark is a millisecond
-// offset into that file.
+// look at each closely. Filming and reviewing never overlap, which is the whole
+// reason this is simple: there is never any need to read the recent past while
+// still writing to it. One recorder runs for the bout, stopping it hands back a
+// complete file the browser wrote itself, and a mark is a millisecond offset
+// into that file.
 //
-// What is genuinely unknown, and what the diagnostics panel is here to measure:
-// whether the recording can be stepped a frame at a time on this device, or
-// whether seeking lurches between keyframes. Everything else is layout.
+// The review screen offers four ways of looking at the same moment, one at a
+// time, because nobody knows yet which one a referee reaches for under
+// pressure. That is a question for a hall, not for a desk — so the modes are
+// switchable in place, on the same instant, and deliberately bare.
 
-import { clampWithin, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
+import { clampWithin, draggedTo, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
 
-const VERSION = '0.1.0-spike';
+const VERSION = '0.2.0-spike';
 const MAX_MARKS = 5;
+/** A tap freezes and stays frozen; anything longer is a hold, and lets go. */
+const HOLD_MS = 250;
 
 const el = (id) => document.getElementById(id);
 const preview = el('preview');
 const clip = el('clip');
+const review = el('review');
 
 /** The camera, open from the moment permission is granted until the tab dies. */
 let stream = null;
@@ -44,6 +48,10 @@ let current = 0;
 let positionMs = 0;
 let window_ = { startMs: 0, endMs: 0, atMs: 0, shortLeadMs: 0, shortTailMs: 0 };
 let playing = false;
+
+/** Which way of looking is on: loop, scrub, step or shuttle. */
+let mode = 'loop';
+let rate = 0.5;
 
 let leadMs = 1500;
 let tailMs = 1000;
@@ -70,7 +78,12 @@ let markSource = 'wall';
 const stepGaps = [];
 /** The media time of the frame currently on screen. */
 let shownMs = null;
-/** Set the instant a step is asked for, cleared by the frame that answers it. */
+/**
+ * Where the picture was when a step was asked for, and how many frames it was
+ * asked to move. Cleared by the frame that answers. Kept together because the
+ * gap is only meaningful divided by the frames wanted — a three-frame button
+ * moving three frames is the right answer, not a wild one.
+ */
 let steppedFrom = null;
 
 // ---------------------------------------------------------------- the camera
@@ -104,8 +117,8 @@ async function openCamera() {
  * Follow the preview's own frame clock.
  *
  * It ticks with the camera rather than with the page, so it survives the phone
- * being busy — and the recording is cut from the same track, so it is the
- * better guess at where a mark lands in the file.
+ * being busy — where it is offered at all. On iOS a live stream's media time
+ * sits at zero, which is what `frameClockUsable` is there to notice.
  */
 function watchPreviewFrames() {
   if (!preview.requestVideoFrameCallback) return;
@@ -185,8 +198,7 @@ function startRecording() {
  * The honest problem: there is a lag between asking for a recording and the
  * first frame actually being encoded, and nothing tells us how long it is. So
  * take both readings — the page's own clock and the camera's frame clock — and
- * let the review screen show which one lands on the moment. The run-up is
- * generous enough that the moment is inside the window on either reading.
+ * let the review screen use whichever can be believed.
  */
 function markAt() {
   if (!recorder || marks.length >= MAX_MARKS) return;
@@ -228,6 +240,7 @@ async function finish() {
   renderTabs();
   select(0);
   document.body.dataset['screen'] = 'review';
+  setMode(mode);
 }
 
 /**
@@ -304,17 +317,26 @@ function select(index) {
 
   el('shortfall').textContent = shortfallLabel(window_) ?? '';
   renderTabs();
-  // Land on the moment that was marked, not on the start of the run-up.
-  seekTo(window_.atMs);
+  // Loop starts from the run-up; the rest land on the moment that was marked.
+  seekTo(mode === 'loop' ? window_.startMs : window_.atMs);
+  if (mode === 'loop') play();
 }
 
 function seekTo(ms) {
   positionMs = clampWithin(ms, window_);
   clip.currentTime = positionMs / 1000;
-  el('scrub').value = String(Math.round(positionMs));
+  renderPosition();
+  watchShownFrame();
+}
+
+/** Everything that says where in the window the footage is. */
+function renderPosition() {
   const relative = (positionMs - window_.atMs) / 1000;
   el('readout').textContent = `${relative >= 0 ? '+' : ''}${relative.toFixed(2)}s`;
-  watchShownFrame();
+  el('scrub').value = String(Math.round(positionMs));
+  const span = window_.endMs - window_.startMs;
+  const through = span > 0 ? (positionMs - window_.startMs) / span : 0;
+  el('progress').firstElementChild.style.width = `${Math.round(through * 100)}%`;
 }
 
 /**
@@ -323,16 +345,16 @@ function seekTo(ms) {
  * The one measurement this spike exists for. Asking for a position and reading
  * back the position you asked for proves nothing; `mediaTime` is the media time
  * of the frame the device really put on the screen, so the gaps between
- * successive readings are the true step size. If they come back at the frame
- * interval, stepping works. If they come back at half a second, the encoder's
- * keyframes are the limit and this approach cannot do the job.
+ * successive readings are the true step size.
  */
 function watchShownFrame() {
   if (!clip.requestVideoFrameCallback) return;
   clip.requestVideoFrameCallback((_now, meta) => {
     shownMs = meta.mediaTime * 1000;
     if (steppedFrom !== null) {
-      stepGaps.push(Math.round(shownMs - steppedFrom));
+      // Per frame asked for, so a three-frame step and a one-frame step are the
+      // same measurement and can be read on the same line.
+      stepGaps.push(Math.round((shownMs - steppedFrom.at) / steppedFrom.frames));
       if (stepGaps.length > 12) stepGaps.shift();
       steppedFrom = null;
     }
@@ -342,42 +364,131 @@ function watchShownFrame() {
 
 function step(frames) {
   pause();
-  steppedFrom = shownMs;
+  steppedFrom = shownMs === null ? null : { at: shownMs, frames };
   seekTo(positionMs + frames * frameMs);
 }
 
 function play() {
-  if (playing) return pause();
-  // Pressing play at the end means "again", which is what it is for.
   if (positionMs >= window_.endMs - 20) seekTo(window_.startMs);
-  clip.playbackRate = Number(el('rate').value);
+  clip.playbackRate = rate;
   playing = true;
-  el('play').textContent = 'Pause';
   void clip.play().catch(() => pause());
   follow();
-}
-
-/** Stop at the end of the window rather than running on into the rest of the bout. */
-function follow() {
-  if (!playing) return;
-  positionMs = clip.currentTime * 1000;
-  el('scrub').value = String(Math.round(positionMs));
-  const relative = (positionMs - window_.atMs) / 1000;
-  el('readout').textContent = `${relative >= 0 ? '+' : ''}${relative.toFixed(2)}s`;
-  if (positionMs >= window_.endMs || clip.ended) {
-    pause();
-    seekTo(window_.endMs);
-    return;
-  }
-  requestAnimationFrame(follow);
 }
 
 function pause() {
   if (!playing) return;
   clip.pause();
   playing = false;
-  el('play').textContent = 'Play';
 }
+
+function togglePlay() {
+  if (playing) pause();
+  else play();
+}
+
+/**
+ * Keep the readouts with the footage, and decide what happens at the far end.
+ *
+ * Loop goes round; everything else stops, because in those modes the end of the
+ * window is where the referee put the footage, not somewhere it wandered to.
+ */
+function follow() {
+  if (!playing) return;
+  positionMs = clip.currentTime * 1000;
+  renderPosition();
+  if (positionMs >= window_.endMs || clip.ended) {
+    if (mode === 'loop') {
+      seekTo(window_.startMs);
+      clip.playbackRate = rate;
+      void clip.play().catch(() => pause());
+    } else {
+      pause();
+      seekTo(window_.endMs);
+      return;
+    }
+  }
+  requestAnimationFrame(follow);
+}
+
+/**
+ * Switch how this moment is being looked at, keeping the moment itself.
+ *
+ * The point of having four is comparing them on the same instant, so switching
+ * never moves the footage — except into and out of loop, which has to be
+ * running to be itself.
+ */
+function setMode(wanted) {
+  mode = wanted;
+  review.dataset['mode'] = mode;
+  for (const button of document.querySelectorAll('#modes button')) {
+    button.classList.toggle('on', button.dataset['mode'] === mode);
+  }
+  renderRate();
+
+  if (mode === 'loop') play();
+  else pause();
+}
+
+function renderRate() {
+  for (const button of document.querySelectorAll('.speed')) {
+    button.classList.toggle('on', Number(button.dataset['rate']) === rate);
+  }
+}
+
+function setRate(wanted) {
+  rate = wanted;
+  clip.playbackRate = rate;
+  renderRate();
+}
+
+// ------------------------------------------------- the picture as a control
+//
+// In loop and scrub the picture is a freeze button: press and hold to stop it
+// while you look, let go and it carries on; a quick tap stops it and leaves it
+// stopped. In shuttle it is the scrub surface itself. In step it is nothing,
+// deliberately — there the buttons are the whole interaction and a stray touch
+// on the footage should not undo a frame you just found.
+
+let touchedAtMs = 0;
+let wasPlaying = false;
+let draggingFromMs = 0;
+let draggingFromX = 0;
+
+function onStageDown(event) {
+  if (mode === 'shuttle') {
+    pause();
+    draggingFromMs = positionMs;
+    draggingFromX = event.clientX;
+    el('stage').setPointerCapture?.(event.pointerId);
+    return;
+  }
+  if (mode !== 'loop' && mode !== 'scrub') return;
+  touchedAtMs = performance.now();
+  wasPlaying = playing;
+  pause();
+}
+
+function onStageMove(event) {
+  if (mode !== 'shuttle' || !event.buttons) return;
+  const width = el('stage').clientWidth || 1;
+  seekTo(
+    draggedTo({
+      fromMs: draggingFromMs,
+      acrossFraction: (event.clientX - draggingFromX) / width,
+      window: window_,
+    })
+  );
+}
+
+function onStageUp() {
+  if (mode !== 'loop' && mode !== 'scrub') return;
+  const held = performance.now() - touchedAtMs >= HOLD_MS;
+  // A hold is a look: it goes back to what it was doing. A tap is a decision.
+  if (held ? wasPlaying : !wasPlaying) play();
+}
+
+// ---------------------------------------------------------------- the trimmings
 
 function resetToLive() {
   pause();
@@ -398,8 +509,6 @@ function resetToLive() {
   renderDots();
   document.body.dataset['screen'] = 'live';
 }
-
-// ---------------------------------------------------------------- the trimmings
 
 function renderDots() {
   const dots = el('dots');
@@ -445,9 +554,9 @@ document.addEventListener('visibilitychange', () => {
  * whole approach has to be replaced.
  */
 function verdictOn(steps) {
-  if (!steps.length) return 'step a few frames on the review screen, then look again';
-  const numbers = `${steps.join(', ')} ms  (one frame is ${Math.round(frameMs)} ms)`;
-  const honest = steps.filter((gap) => Math.abs(gap) >= frameMs * 0.5 && Math.abs(gap) <= frameMs * 1.5);
+  if (!steps.length) return 'step a few frames in Step mode, then look again';
+  const numbers = `${steps.join(', ')} ms per frame  (one frame is ${Math.round(frameMs)} ms)`;
+  const honest = steps.filter((gap) => Math.abs(gap) >= frameMs * 0.5 && Math.abs(gap) <= frameMs * 2.5);
   if (honest.length === steps.length) return `stepping WORKS here — a step moved ${numbers}`;
   if (honest.length === 0) return `stepping is COARSE here — a step moved ${numbers}`;
   return `stepping is UNEVEN here — steps moved ${numbers}`;
@@ -456,13 +565,11 @@ function verdictOn(steps) {
 function renderDiagnostics() {
   const track = stream?.getVideoTracks()[0];
   const settings = track?.getSettings() ?? {};
-  const verdict = verdictOn(stepGaps);
   const usingCameraClock = markSource === 'frame' && frameClockUsable(marks);
 
-  el('diag').innerHTML =
-    `<button class="close" id="diag-close">Close</button>` +
+  el('diag-body').innerHTML =
     `<h2>the question this spike exists for</h2>` +
-    `<span class="headline">${verdict}</span>\n` +
+    `<span class="headline">${verdictOn(stepGaps)}</span>\n` +
     `<h2>device</h2>` +
     `Solo ${VERSION}\n${navigator.userAgent}\n` +
     `<h2>camera</h2>` +
@@ -491,9 +598,6 @@ function renderDiagnostics() {
     `WebCodecs encoder    ${!!window.VideoEncoder}\n` +
     `ManagedMediaSource   ${!!window.ManagedMediaSource}\n`;
 
-  el('diag-close').addEventListener('click', () => {
-    el('diag').hidden = true;
-  });
   el('diag-flip')?.addEventListener('click', () => {
     markSource = markSource === 'frame' ? 'wall' : 'frame';
     if (document.body.dataset['screen'] === 'review') select(current);
@@ -512,18 +616,35 @@ el('start').addEventListener('click', startRecording);
 el('bookmark').addEventListener('click', markAt);
 el('stop').addEventListener('click', stopRecording);
 el('again').addEventListener('click', resetToLive);
-el('back').addEventListener('click', () => step(-1));
-el('fwd').addEventListener('click', () => step(1));
-el('play').addEventListener('click', play);
-el('rate').addEventListener('change', () => {
-  clip.playbackRate = Number(el('rate').value);
+el('info').addEventListener('click', showDiagnostics);
+el('info2').addEventListener('click', showDiagnostics);
+el('diag-close').addEventListener('click', () => {
+  el('diag').hidden = true;
 });
+
+for (const button of document.querySelectorAll('#modes button')) {
+  button.addEventListener('click', () => setMode(button.dataset['mode']));
+}
+for (const button of document.querySelectorAll('.speed')) {
+  button.addEventListener('click', () => setRate(Number(button.dataset['rate'])));
+}
+for (const button of document.querySelectorAll('.strip[data-mode="step"] button')) {
+  button.addEventListener('click', () => step(Number(button.dataset['step'])));
+}
+
 el('scrub').addEventListener('input', (event) => {
   pause();
   seekTo(Number(event.target.value));
 });
-el('info').addEventListener('click', showDiagnostics);
-el('info2').addEventListener('click', showDiagnostics);
+el('scrub').addEventListener('change', () => {
+  if (el('resume').checked) play();
+});
+
+const stage = el('stage');
+stage.addEventListener('pointerdown', onStageDown);
+stage.addEventListener('pointermove', onStageMove);
+stage.addEventListener('pointerup', onStageUp);
+stage.addEventListener('pointercancel', onStageUp);
 
 for (const [input, get, set] of [
   ['lead', () => leadMs, (value) => (leadMs = value)],
@@ -535,11 +656,12 @@ for (const [input, get, set] of [
   control.addEventListener('input', (event) => {
     set(Number(event.target.value));
     el(`${input}-value`).textContent = `${(get() / 1000).toFixed(1)}s`;
-    select(current);
+    if (marks.length) select(current);
   });
 }
 
 renderDots();
+renderRate();
 openCamera().catch((error) => {
   el('live-note').textContent = `No camera: ${error.name}. It needs https and permission.`;
   el('start').disabled = true;

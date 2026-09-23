@@ -44,7 +44,6 @@
           env(safe-area-inset-bottom) env(safe-area-inset-left);
       }
 
-      /* Which screen is showing. Everything else is display:none. */
       section { display: none; flex: 1; min-height: 0; flex-direction: column; }
       body[data-screen="live"] #live,
       body[data-screen="review"] #review { display: flex; }
@@ -74,9 +73,9 @@
       button:disabled { opacity: 0.35; }
       button:active:not(:disabled) { filter: brightness(1.25); }
 
-      /* ---------- the live screen ---------- */
-
       .stage { position: relative; flex: 1; min-height: 0; }
+
+      /* ---------- the live screen ---------- */
 
       .hud {
         position: absolute;
@@ -103,7 +102,6 @@
       }
       @keyframes pulse { 50% { opacity: 0.25; } }
 
-      /* One dot per mark taken, so the count is readable without counting. */
       #dots { display: flex; gap: 6px; }
       #dots i {
         width: 11px;
@@ -121,24 +119,48 @@
         background: rgba(0, 0, 0, 0.4);
       }
 
-      /* The thumb end of the screen. BOOKMARK is deliberately enormous. */
       .actions { display: flex; gap: 10px; padding: 12px; flex: none; }
       #start, #bookmark { flex: 1; font-size: 26px; font-weight: 700; letter-spacing: 0.04em; padding: 26px 16px; }
       #start { background: var(--accent); color: #06232a; border-color: var(--accent); }
       #bookmark { background: var(--mark); border-color: var(--mark); color: #fff; }
       #stop { flex: none; font-size: 16px; }
 
-      /* ---------- the review screen ---------- */
+      /* ---------- the review screen ----------
 
-      #tabs { display: flex; gap: 8px; padding: 10px 12px 0; flex: none; }
-      #tabs button { flex: 1; font-size: 20px; font-weight: 700; padding: 14px 0; }
+         Two thin edges hold what is always needed — which mark, and which way of
+         looking at it — and the band between them belongs to one mode at a time.
+         Everything a mode does not need is not on the screen while it is on. */
+
+      #topbar { display: flex; gap: 8px; padding: 10px 12px 0; flex: none; align-items: stretch; }
+      #tabs { display: flex; gap: 8px; flex: 1; min-width: 0; }
+      #tabs button { flex: 1; font-size: 20px; font-weight: 700; padding: 12px 0; }
       #tabs button.on { border-color: var(--accent); color: var(--accent); }
+      #again { font-size: 13px; padding: 12px 10px; flex: none; }
+
+      /* Over the footage rather than beside it: it costs no room there. */
+      #readout {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        font-family: ui-monospace, Menlo, monospace;
+        font-variant-numeric: tabular-nums;
+        font-size: 13px;
+        padding: 3px 7px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.55);
+        color: var(--ink);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+      }
+
+      /* Where in the window the footage is, without spending a row on saying so. */
+      #progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.14); }
+      #progress i { display: block; height: 100%; width: 0; background: var(--accent); }
 
       #shortfall {
         position: absolute;
         left: 0;
         right: 0;
-        bottom: 0;
+        bottom: 3px;
         padding: 7px 12px;
         font-size: 13px;
         color: var(--warm);
@@ -147,49 +169,36 @@
       }
       #shortfall:empty { display: none; }
 
-      .controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px 0;
-        flex: none;
-      }
-      .controls .step { font-size: 24px; padding: 16px 0; flex: 1; }
-      #play { flex: 1.2; font-size: 17px; padding: 16px 0; }
-      select {
-        font: inherit;
-        font-size: 15px;
-        color: var(--ink);
-        background: var(--panel);
-        border: 1px solid var(--rule);
-        border-radius: 10px;
-        padding: 15px 8px;
-      }
+      /* The one strip belonging to whichever mode is on. */
+      .band { flex: none; padding: 10px 12px 0; }
+      .strip { display: none; gap: 8px; align-items: center; }
+      #review[data-mode="loop"] .strip[data-mode="loop"],
+      #review[data-mode="scrub"] .strip[data-mode="scrub"],
+      #review[data-mode="step"] .strip[data-mode="step"],
+      #review[data-mode="shuttle"] .strip[data-mode="shuttle"] { display: flex; }
 
-      .scrubline { display: flex; align-items: center; gap: 10px; padding: 10px 12px 0; flex: none; }
-      /* The scrub spans the window, not the recording: that is what is under review. */
-      #scrub { flex: 1; accent-color: var(--accent); min-width: 0; }
-      #readout {
-        font-family: ui-monospace, Menlo, monospace;
-        font-variant-numeric: tabular-nums;
-        font-size: 13px;
-        min-width: 66px;
-        text-align: right;
-        color: var(--faded);
-      }
+      .strip[data-mode="loop"] button { flex: 1; font-size: 18px; padding: 18px 0; }
+      .strip[data-mode="loop"] button.on { border-color: var(--accent); color: var(--accent); }
 
-      /* How much either side of a mark to show. Here so the right numbers can be
-         found by trying them, rather than guessed once and baked in. */
-      .tune { display: flex; gap: 14px; padding: 10px 12px 0; font-size: 13px; color: var(--faded); flex: none; }
-      .tune label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
-      .tune input { flex: 1; min-width: 0; accent-color: var(--faded); }
-      /* Fixed width, or the value is the thing that gets pushed off the screen. */
-      #lead-value, #tail-value { flex: none; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+      .strip[data-mode="scrub"] { flex-direction: column; align-items: stretch; gap: 10px; }
+      /* Tall, because it is the whole interaction in this mode. */
+      #scrub { width: 100%; accent-color: var(--accent); height: 34px; }
+      .toggle { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--faded); }
+      .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
 
-      .foot { display: flex; gap: 10px; padding: 12px; flex: none; }
-      #again { flex: 1; }
+      .strip[data-mode="step"] button { flex: 1; font-size: 17px; padding: 20px 0; }
 
-      /* ---------- diagnostics ---------- */
+      .strip[data-mode="shuttle"] { justify-content: center; }
+      .hint { font-size: 13.5px; color: var(--faded); padding: 20px 0; text-align: center; }
+
+      /* Dragging the picture must not drag the page with it. */
+      #review[data-mode="shuttle"] .stage { touch-action: none; }
+
+      #modes { display: flex; gap: 8px; padding: 10px 12px; flex: none; }
+      #modes button { flex: 1; font-size: 14px; padding: 13px 0; }
+      #modes button.on { border-color: var(--accent); color: var(--accent); background: rgba(55, 200, 216, 0.1); }
+
+      /* ---------- the panel behind the ⓘ ---------- */
 
       #diag {
         position: fixed;
@@ -200,14 +209,19 @@
         font-family: ui-monospace, Menlo, Consolas, monospace;
         font-size: 12.5px;
         line-height: 1.6;
-        white-space: pre-wrap;
-        word-break: break-word;
         z-index: 10;
       }
       #diag[hidden] { display: none; }
+      #diag-body { white-space: pre-wrap; word-break: break-word; }
       #diag h2 { font-size: 13px; margin: 18px 0 4px; color: var(--accent); }
       #diag .close { position: sticky; top: 0; float: right; }
       #diag .headline { color: var(--warm); }
+
+      /* Set once, not while looking — so they live here rather than on the screen. */
+      .tune { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--faded); }
+      .tune label { display: flex; align-items: center; gap: 10px; }
+      .tune input[type="range"] { flex: 1; min-width: 0; accent-color: var(--faded); }
+      #lead-value, #tail-value { flex: none; min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
 
       .note { padding: 12px; color: var(--faded); font-size: 13.5px; text-align: center; }
 
@@ -225,22 +239,22 @@
 
         body[data-screen="review"] #review {
           display: grid;
-          grid-template-columns: 1fr 270px;
-          grid-template-rows: auto auto auto auto 1fr;
+          grid-template-columns: 1fr 300px;
+          grid-template-rows: auto 1fr auto;
           grid-template-areas:
-            "stage tabs"
-            "stage controls"
-            "stage scrub"
-            "stage tune"
-            "stage foot";
+            "stage topbar"
+            "stage band"
+            "stage modes";
         }
         #review .stage { grid-area: stage; }
-        #tabs { grid-area: tabs; padding-left: 0; }
-        .controls { grid-area: controls; padding-left: 0; }
-        .controls .step, #play { padding: 12px 0; }
-        .scrubline { grid-area: scrub; padding-left: 0; }
-        .tune { grid-area: tune; flex-direction: column; gap: 4px; padding-left: 0; }
-        .foot { grid-area: foot; align-items: flex-end; padding-left: 0; }
+        #topbar { grid-area: topbar; padding-left: 0; }
+        .band { grid-area: band; padding-left: 0; align-self: center; }
+        #modes { grid-area: modes; padding-left: 0; flex-wrap: wrap; }
+        #modes button { flex: 1 1 40%; }
+        .strip[data-mode="loop"] { flex-wrap: wrap; }
+        .strip[data-mode="loop"] button { flex: 1 1 40%; }
+        .strip[data-mode="step"] { flex-wrap: wrap; }
+        .strip[data-mode="step"] button { flex: 1 1 40%; }
       }
     </style>
   </head>
@@ -266,41 +280,69 @@
     </section>
 
     <!-- ---------------- review ---------------- -->
-    <section id="review">
-      <nav id="tabs"></nav>
-      <div class="stage">
+    <section id="review" data-mode="loop">
+      <nav id="topbar">
+        <div id="tabs"></div>
+        <button id="again">New bout</button>
+        <button class="icon" id="info2" title="What this device can do">&#9432;</button>
+      </nav>
+
+      <div class="stage" id="stage">
         <video id="clip" playsinline></video>
-        <div id="shortfall"></div>
-      </div>
-
-      <div class="controls">
-        <button class="step" id="back" title="one frame back">&#9664;</button>
-        <button id="play">Play</button>
-        <button class="step" id="fwd" title="one frame on">&#9654;</button>
-        <select id="rate" title="speed">
-          <option value="1">1&times;</option>
-          <option value="0.5">&frac12;&times;</option>
-          <option value="0.25">&frac14;&times;</option>
-        </select>
-      </div>
-
-      <div class="scrubline">
-        <input id="scrub" type="range" step="1" />
         <span id="readout">+0.00s</span>
+        <div id="shortfall"></div>
+        <div id="progress"><i></i></div>
       </div>
 
+      <div class="band">
+        <!-- Loop: it goes round on its own, so the only question is how fast. -->
+        <div class="strip" data-mode="loop">
+          <button class="speed" data-rate="1">1&times;</button>
+          <button class="speed" data-rate="0.5">&frac12;&times;</button>
+          <button class="speed" data-rate="0.25">&frac14;&times;</button>
+          <button class="speed" data-rate="0.125">&#8539;&times;</button>
+        </div>
+
+        <!-- Scrub: the slider is the whole interaction, so nothing else is here. -->
+        <div class="strip" data-mode="scrub">
+          <input id="scrub" type="range" step="1" />
+          <label class="toggle">
+            <input id="resume" type="checkbox" checked />
+            keep playing when I let go
+          </label>
+        </div>
+
+        <!-- Step: four targets, thumb-sized, two each way. -->
+        <div class="strip" data-mode="step">
+          <button data-step="-3">&#9664;&#9664; 3</button>
+          <button data-step="-1">&#9664; 1</button>
+          <button data-step="1">1 &#9654;</button>
+          <button data-step="3">3 &#9654;&#9654;</button>
+        </div>
+
+        <!-- Shuttle: no control at all. The picture is the control. -->
+        <div class="strip" data-mode="shuttle">
+          <span class="hint">drag anywhere across the picture</span>
+        </div>
+      </div>
+
+      <nav id="modes">
+        <button data-mode="loop">Loop</button>
+        <button data-mode="scrub">Scrub</button>
+        <button data-mode="step">Step</button>
+        <button data-mode="shuttle">Shuttle</button>
+      </nav>
+    </section>
+
+    <div id="diag" hidden>
+      <button class="close" id="diag-close">Close</button>
+      <h2>how much to show either side of a mark</h2>
       <div class="tune">
         <label>before <input id="lead" type="range" min="500" max="4000" step="100" /><span id="lead-value"></span></label>
         <label>after <input id="tail" type="range" min="200" max="3000" step="100" /><span id="tail-value"></span></label>
       </div>
-
-      <div class="foot">
-        <button id="again">New bout</button>
-        <button class="icon" id="info2" title="What this device can do">&#9432;</button>
-      </div>
-    </section>
-
-    <div id="diag" hidden></div>
+      <div id="diag-body"></div>
+    </div>
 
     <script type="module" src="solo.js"></script>
   </body>

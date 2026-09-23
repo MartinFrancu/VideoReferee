@@ -35,12 +35,45 @@ accepted.
    dots along the top show how many you have.
 4. **STOP** when the fight is stopped.
 5. **1 2 3** along the top switches between the marks. Switching is instant.
-6. **◀ ▶** step a frame; **Play** replays that moment; **¼× ½×** slow it down;
-   the slider scrubs within the moment, and the readout is relative to the mark
-   itself — `+0.00s` is the instant you pressed the button.
-7. **before / after** re-cut how much is shown either side, live. Find the
-   numbers that suit and tell me what they were.
-8. **New bout** throws it away and goes back to filming.
+6. **Loop / Scrub / Step / Shuttle** along the bottom switch how you look at the
+   moment. They are four different answers to the same question and only one of
+   them needs to survive — see below.
+7. **New bout** throws it away and goes back to filming.
+
+The readout on the picture is relative to the mark itself: `+0.00s` is the
+instant you pressed the button. The hairline under the picture is where you are
+in the window.
+
+## The four ways of looking, and what to judge
+
+Switching mode keeps the mark and the position, so the same instant can be
+looked at four ways one after another. That is the point of having four.
+
+**Loop** — it goes round on its own. The only control is speed: `1× ½× ¼× ⅛×`.
+Press and hold the picture to freeze it while you look, let go and it carries
+on; a quick tap freezes it and leaves it frozen.
+
+**Scrub** — the slider is the whole thing. The toggle decides whether letting go
+carries on playing or leaves it where you put it. Tap the picture to start or
+stop.
+
+**Step** — four buttons, one and three frames each way. Nothing else, and a
+touch on the picture does nothing, so a frame you have found cannot be lost by
+resting a thumb on it.
+
+**Shuttle** — no control at all: drag your thumb anywhere across the picture and
+the footage follows. The full width is the full window. It is here because a
+whole picture is a much bigger target than a slider, and because it works
+one-handed without looking at your hand.
+
+**What to tell me:** which one you reached for without thinking, which one was
+annoying, and whether any of them is obviously wrong for a hall. Guesses about
+which is better are worth nothing next to using them once.
+
+## Setting the window
+
+**before / after** live behind the ⓘ now — they are set once rather than while
+looking. Find the numbers that suit and tell me what they were.
 
 ## What to look for
 
