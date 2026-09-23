@@ -1,6 +1,6 @@
 ---
 name: chunks
-description: How work is divided in this repo — every change is exactly one refactor, bugfix or development chunk, never a mix, with an R:/B:/D: commit, a version bump and a changelog entry. Use before starting any change, when deciding what belongs in the current change, and when writing the commit.
+description: How work is divided in this repo — every change is exactly one refactor, bugfix or development chunk, never a mix, with an R:/B:/D: commit, a version bump and a changelog entry. Describe what will be built and wait for a yes before building it, and ask before committing to any branch other than the one being worked on. Use before starting any change, before committing to any branch, when deciding what belongs in the current change, and when writing the commit.
 ---
 
 # One chunk, one intention
@@ -41,6 +41,31 @@ during a bugfix is still a refactor, and it still waits its turn.
 
 If the type is not obvious from the request, **ask**. One question costs less
 than a chunk of the wrong shape.
+
+## Describe it, then wait
+
+Before building anything, say what it will be — what it does, what it does not
+do, and what it will look like on the screen if that is the point of it. Then
+**stop and wait for a yes.**
+
+It applies to anything that will be built: a feature, a fix for something not
+yet reported, a refactor noticed in passing. It does not apply to reading,
+measuring, diagnosing or asking — find out as much as you like, as long as
+nothing changes.
+
+When the answer is a correction rather than a yes, describe it again with the
+correction in it. Two cheap rounds beat one expensive one.
+
+## Ask before committing anywhere else
+
+**Ask before committing to any branch other than the one being worked on**, and
+especially when the consequences are not clear. That is where being wrong is
+most expensive and least visible: a change nobody is expecting is a change
+nobody will remember.
+
+Meta files — the backlog, notes, READMEs, comments — are held more loosely.
+They are easy to read, easy to check, and hard to break. Production code is not:
+it does not move between branches without being asked for.
 
 ## What the tests do in each
 
