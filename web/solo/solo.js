@@ -12,7 +12,7 @@
 // whether the recording can be stepped a frame at a time on this device, or
 // whether seeking lurches between keyframes. Everything else is layout.
 
-import { clampWithin, shortfallLabel, windowFor } from './windows.js';
+import { clampWithin, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
 
 const VERSION = '0.1.0-spike';
 const MAX_MARKS = 5;
@@ -51,10 +51,14 @@ let tailMs = 1000;
 /**
  * Which of the two timings to trust for where a mark falls.
  *
- * Switchable from the diagnostics panel because it is precisely the thing this
- * spike cannot know in advance: see `markAt`.
+ * The page's clock by default, because it is the one that is always there.
+ * The camera's clock is the more accurate of the two where it runs, but it is
+ * not offered for a live stream everywhere — and where it is not, it reads zero
+ * rather than reading as absent, which put every mark of a bout at the same
+ * instant and showed the first one under every tab. `frameClockUsable` is the
+ * guard; this is the preference, switchable from the diagnostics panel.
  */
-let markSource = 'frame';
+let markSource = 'wall';
 
 /**
  * How far each frame step actually moved the picture, newest last.
@@ -270,8 +274,7 @@ function measureDuration() {
 // ----------------------------------------------------------------- reviewing
 
 function markMs(mark) {
-  const chosen = markSource === 'frame' ? mark.frameMs : mark.wallMs;
-  return chosen ?? mark.wallMs;
+  return markSource === 'frame' && frameClockUsable(marks) ? mark.frameMs : mark.wallMs;
 }
 
 function renderTabs() {
@@ -454,6 +457,7 @@ function renderDiagnostics() {
   const track = stream?.getVideoTracks()[0];
   const settings = track?.getSettings() ?? {};
   const verdict = verdictOn(stepGaps);
+  const usingCameraClock = markSource === 'frame' && frameClockUsable(marks);
 
   el('diag').innerHTML =
     `<button class="close" id="diag-close">Close</button>` +
@@ -476,8 +480,10 @@ function renderDiagnostics() {
           )
           .join('\n')
       : 'none yet') +
-    `\nusing the <b>${markSource}</b> clock — ` +
-    `<button id="diag-flip">use the ${markSource === 'frame' ? 'wall' : 'frame'} clock</button>\n` +
+    `\nplacing the marks by the <b>${usingCameraClock ? 'camera' : 'page'}</b> clock\n` +
+    (frameClockUsable(marks)
+      ? `<button id="diag-flip">use the ${markSource === 'frame' ? 'page' : 'camera'} clock instead</button>\n`
+      : 'the camera clock never ran on this device, so it is ignored\n') +
     `<h2>what this device has</h2>` +
     `MediaRecorder        ${!!window.MediaRecorder}\n` +
     `frame callbacks      ${!!preview.requestVideoFrameCallback}\n` +
@@ -488,7 +494,7 @@ function renderDiagnostics() {
   el('diag-close').addEventListener('click', () => {
     el('diag').hidden = true;
   });
-  el('diag-flip').addEventListener('click', () => {
+  el('diag-flip')?.addEventListener('click', () => {
     markSource = markSource === 'frame' ? 'wall' : 'frame';
     if (document.body.dataset['screen'] === 'review') select(current);
     renderDiagnostics();

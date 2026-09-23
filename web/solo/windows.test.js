@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { clampWithin, shortfallLabel, windowFor } from './windows.js';
+import { clampWithin, frameClockUsable, shortfallLabel, windowFor } from './windows.js';
 
 const spec = { leadMs: 1500, tailMs: 1000, durationMs: 60_000 };
 
@@ -57,6 +57,47 @@ describe('the window a bookmark is reviewed in', () => {
     const window = windowFor({ atMs: 60_500, ...spec });
     expect(window.atMs).toBe(60_000);
     expect(window.startMs).toBeLessThanOrEqual(window.atMs);
+  });
+});
+
+/**
+ * Every mark is timed twice, by the page's clock and by the camera's own frame
+ * clock, because the lag between asking for a recording and the first encoded
+ * frame is real and nothing reports it.
+ *
+ * But the camera's clock is only there on some browsers. Where it is not, it
+ * does not go missing — it sits at zero and stays there, which put every mark
+ * of a bout at the same instant and showed the first one under all three tabs.
+ * A reading has to be shown to have run before it can be believed.
+ */
+describe('whether the camera clock can be believed', () => {
+  test('believes a clock that ran', () => {
+    expect(frameClockUsable([{ frameMs: 2550 }, { frameMs: 5100 }, { frameMs: 7650 }])).toBe(true);
+  });
+
+  // The iPhone case: a live stream's media time never leaves zero.
+  test('refuses a clock that never moved off zero', () => {
+    expect(frameClockUsable([{ frameMs: 0 }, { frameMs: 0 }, { frameMs: 0 }])).toBe(false);
+  });
+
+  test('refuses a clock that was not there at all', () => {
+    expect(frameClockUsable([{ frameMs: null }, { frameMs: null }])).toBe(false);
+    expect(frameClockUsable([{ frameMs: 2550 }, { frameMs: null }])).toBe(false);
+  });
+
+  /** Marks are taken in order, so their times have to come back in order too. */
+  test('refuses a clock that went backwards or stood still', () => {
+    expect(frameClockUsable([{ frameMs: 5100 }, { frameMs: 2550 }])).toBe(false);
+    expect(frameClockUsable([{ frameMs: 2550 }, { frameMs: 2550 }])).toBe(false);
+  });
+
+  test('has nothing to believe when nothing was marked', () => {
+    expect(frameClockUsable([])).toBe(false);
+  });
+
+  /** One mark cannot show a clock running, so it is not evidence either. */
+  test('refuses a single reading, which proves nothing either way', () => {
+    expect(frameClockUsable([{ frameMs: 2550 }])).toBe(false);
   });
 });
 

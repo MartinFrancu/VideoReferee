@@ -36,6 +36,31 @@ export function windowFor({ atMs, leadMs, tailMs, durationMs }) {
   };
 }
 
+/**
+ * Whether the camera's own frame clock actually ran during this recording.
+ *
+ * Every mark is timed twice — by the page's clock and by the camera's — because
+ * the lag between asking for a recording and the first encoded frame is real
+ * and nothing reports it. But the camera's clock is not available everywhere,
+ * and where it is missing it does not read as missing: it reads as zero, over
+ * and over. Believing it then puts every mark of a bout at the same instant.
+ *
+ * So it has to be seen to have run. Marks are taken in order, one after
+ * another, so their times must come back strictly increasing and above zero.
+ * A single reading shows nothing running and is not taken as evidence.
+ *
+ * @param {readonly {frameMs: number | null}[]} marks in the order they were taken
+ */
+export function frameClockUsable(marks) {
+  if (marks.length < 2) return false;
+  let previous = 0;
+  for (const mark of marks) {
+    if (typeof mark.frameMs !== 'number' || !(mark.frameMs > previous)) return false;
+    previous = mark.frameMs;
+  }
+  return true;
+}
+
 /** Keep a playback position inside its window. */
 export function clampWithin(positionMs, { startMs, endMs }) {
   return Math.max(startMs, Math.min(positionMs, endMs));
